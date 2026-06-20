@@ -1,6 +1,6 @@
 {
   "name": "taskify",
-  "version": "0.1.0",
+  "version": "0.0.1",
   "description": "A focused daily task manager with system tray check-ins",
   "main": "out/main/index.js",
   "scripts": {
