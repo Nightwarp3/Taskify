@@ -1,0 +1,105 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Semantic color tokens ────────────────────────────────────────── */
+:root {
+  /* Surfaces */
+  --c-canvas:   #F3F4F6;
+  --c-raised:   #FFFFFF;
+  --c-well:     #EBEDF0;
+  --c-hover:    #E8EAED;
+
+  /* Borders */
+  --c-rim:        #D1D5DB;
+  --c-rim-focus:  #2979FF;
+
+  /* Text */
+  --c-ink:    #1C1B1F;
+  --c-muted:  #5F6368;
+  --c-ghost:  #9AA0A6;
+
+  /* Primary — electric blue */
+  --c-accent:           #2979FF;
+  --c-accent-soft:      #82B1FF;
+  --c-accent-container: #E8F0FE;
+  --c-on-accent:        #FFFFFF;
+
+  /* Semantic */
+  --c-danger: #B3261E;
+  --c-shadow: rgba(0, 0, 0, 0.10);
+
+  /* Checkbox complete */
+  --c-complete-bg:   #2979FF;
+  --c-complete-text: #FFFFFF;
+}
+
+html.dark {
+  --c-canvas:   #121212;
+  --c-raised:   #1E1E1E;
+  --c-well:     #2A2A2A;
+  --c-hover:    #2E2E2E;
+
+  --c-rim:       #3A3A3A;
+  --c-rim-focus: #2979FF;
+
+  --c-ink:   #E3E3E3;
+  --c-muted: #AEAEB2;
+  --c-ghost: #6E6E73;
+
+  --c-accent:           #2979FF;
+  --c-accent-soft:      #82B1FF;
+  --c-accent-container: #1A2E50;
+  --c-on-accent:        #FFFFFF;
+
+  --c-danger: #F2B8B5;
+  --c-shadow: rgba(0, 0, 0, 0.40);
+}
+
+/* ── Base ─────────────────────────────────────────────────────────── */
+@layer base {
+  *, *::before, *::after { box-sizing: border-box; }
+
+  html, body, #root {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    background: var(--c-canvas);
+    color: var(--c-ink);
+    -webkit-font-smoothing: antialiased;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+
+  input, textarea, button { font-family: inherit; }
+}
+
+/* ── Thin scrollbar ───────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--c-rim); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--c-ghost); }
+
+/* ── MD-style state layer on interactive elements ─────────────────── */
+@layer utilities {
+  .state-layer {
+    position: relative;
+    overflow: hidden;
+  }
+  .state-layer::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: currentColor;
+    opacity: 0;
+    transition: opacity 0.15s;
+    pointer-events: none;
+  }
+  .state-layer:hover::after  { opacity: 0.06; }
+  .state-layer:active::after { opacity: 0.12; }
+}
