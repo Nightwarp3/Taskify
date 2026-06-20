@@ -50,10 +50,14 @@ export async function cancelTaskAlarm(taskId: number): Promise<void> {
 // ── Check-ins (fire at intervals for top-priority incomplete task) ─────────
 
 export async function rescheduleCheckIns(): Promise<void> {
-  // Cancel all pending check-in notifications
-  const pending: { id: number }[] = []
-  for (let i = CHECKIN_BASE; i < CHECKIN_BASE + 10000; i++) pending.push({ id: i })
-  try { await LocalNotifications.cancel({ notifications: pending }) } catch { /* ignore */ }
+  // Cancel only the check-in notifications that are actually pending
+  try {
+    const { notifications: pending } = await LocalNotifications.getPending()
+    const checkIns = pending.filter((n) => n.id >= CHECKIN_BASE && n.id < CHECKIN_BASE + 10000)
+    if (checkIns.length > 0) {
+      await LocalNotifications.cancel({ notifications: checkIns.map((n) => ({ id: n.id })) })
+    }
+  } catch { /* ignore */ }
 
   const today = localDateString()
   const tasks = await taskQueries.listByDate(today)

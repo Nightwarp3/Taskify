@@ -49,27 +49,37 @@ function emit(channel: string, ...args: unknown[]): void {
 }
 
 export async function installBridge(): Promise<void> {
+  // Storage is critical — let this throw if it fails
   await initStorage()
-  await registerNotificationTypes()
 
-  // Re-schedule alarms for today's tasks that have a scheduled time
-  const today = localDateString()
-  const todayTasks = await taskQueries.listByDate(today)
-  for (const task of todayTasks) {
-    if (task.scheduledTime && !task.completed) await scheduleTaskAlarm(task)
+  // Notification setup is best-effort; don't block app launch if permissions
+  // haven't been granted yet or the plugin isn't ready
+  try {
+    await registerNotificationTypes()
+
+    const today = localDateString()
+    const todayTasks = await taskQueries.listByDate(today)
+    for (const task of todayTasks) {
+      if (task.scheduledTime && !task.completed) await scheduleTaskAlarm(task)
+    }
+    await rescheduleCheckIns()
+
+    const settings = await settingsQueries.get()
+    await scheduleEndOfDay(settings)
+
+    registerNotificationListeners(() => emit('tasks:refreshed'))
+  } catch (e) {
+    console.warn('[Taskify] notification init failed (non-fatal):', e)
   }
-  await rescheduleCheckIns()
 
-  // Schedule end-of-day based on current settings
-  const settings = await settingsQueries.get()
-  await scheduleEndOfDay(settings)
-
-  // Generate recurring tasks for today
-  const newTasks = await templateQueries.generateDueTasks(today)
-  if (newTasks.length > 0) emit('tasks:refreshed')
-
-  // Hook notification tap actions into the bridge
-  registerNotificationListeners(() => emit('tasks:refreshed'))
+  // Recurring task generation is also best-effort
+  try {
+    const today = localDateString()
+    const newTasks = await templateQueries.generateDueTasks(today)
+    if (newTasks.length > 0) emit('tasks:refreshed')
+  } catch (e) {
+    console.warn('[Taskify] recurring task generation failed (non-fatal):', e)
+  }
 
   const api: TaskifyAPI = {
     tasks: {
