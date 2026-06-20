@@ -234,6 +234,21 @@ export const taskQueries = {
     })
   },
 
+  rescheduleDate(id: number, newDate: string): Task | null {
+    const existing = store.get('tasks')[id]
+    if (!existing || existing.date === newDate) return existing ? toTask(existing) : null
+
+    const oldOrder: number[] = store.get(`tasksByDate.${existing.date}` as never, [] as never) as number[]
+    store.set(`tasksByDate.${existing.date}` as never, oldOrder.filter((i) => i !== id) as never)
+
+    const newOrder: number[] = store.get(`tasksByDate.${newDate}` as never, [] as never) as number[]
+    store.set(`tasksByDate.${newDate}` as never, [...newOrder, id] as never)
+
+    const updated: StoredTask = { ...existing, date: newDate, sortOrder: newOrder.length }
+    store.set(`tasks.${id}` as never, updated as never)
+    return toTask(updated)
+  },
+
   getAll(): Task[] {
     return Object.values(store.get('tasks')).map(toTask)
   }

@@ -125,6 +125,22 @@ function handleMcpBridgeRequest(req: { id: string; type: string; payload: unknow
         respond(taskQueries.listByProject(p.projectId as number))
         break
       }
+      case 'tasks:listByTag': {
+        const { taskQueries } = require('./db')
+        const tag = p.tag as string
+        const all = taskQueries.getAll() as Array<{ tags: string | null }>
+        respond(all.filter((t) => {
+          if (!t.tags) return false
+          try { return (JSON.parse(t.tags) as string[]).includes(tag) }
+          catch { return false }
+        }))
+        break
+      }
+      case 'tasks:getById': {
+        const { taskQueries } = require('./db')
+        respond(taskQueries.getById(p.id as number))
+        break
+      }
       case 'tasks:create': {
         const { taskQueries } = require('./db')
         const today = new Date().toISOString().slice(0, 10)
@@ -137,12 +153,14 @@ function handleMcpBridgeRequest(req: { id: string; type: string; payload: unknow
       }
       case 'tasks:update': {
         const { taskQueries } = require('./db')
-        const { id: taskId, tags, links, ...fields } = p as {
-          id: number; tags?: string[]; links?: string[]
+        const { id: taskId, tags, links, date: newDate, projectId, ...fields } = p as {
+          id: number; tags?: string[]; links?: string[]; date?: string; projectId?: number | null
           title?: string; completed?: boolean; notes?: string; estimatedMinutes?: number | null
         }
+        if (newDate !== undefined) taskQueries.rescheduleDate(taskId, newDate)
         respond(taskQueries.update(taskId, {
           ...fields,
+          projectId,
           tags: tags !== undefined ? JSON.stringify(tags) : undefined,
           links: links !== undefined ? JSON.stringify(links) : undefined
         }))

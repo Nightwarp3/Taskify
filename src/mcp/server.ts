@@ -24,7 +24,7 @@ process.on('message', (msg: BridgeResponse) => {
   }
 })
 
-// ── MCP handler (manual SSE, no SDK dependency issues) ────────────────────
+// ── MCP handler ───────────────────────────────────────────────────────────────
 const allTools = [...taskTools, ...projectTools, ...templateTools]
 
 async function handleMcpCall(method: string, params: Record<string, unknown>): Promise<unknown> {
@@ -81,7 +81,38 @@ async function handleMcpCall(method: string, params: Record<string, unknown>): P
   }
 }
 
-// ── HTTP + SSE transport (manual implementation) ──────────────────────────
+// ── Shared helpers ────────────────────────────────────────────────────────────
+function setCorsHeaders(res: http.ServerResponse): void {
+  res.setHeader('Access-Control-Allow-Origin', '*')
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
+}
+
+async function processJsonRpc(
+  body: string
+): Promise<{ jsonrpc: string; id: string | number | null; result?: unknown; error?: unknown }> {
+  const msg = JSON.parse(body) as {
+    jsonrpc: string
+    id: string | number
+    method: string
+    params?: Record<string, unknown>
+  }
+
+  let result: unknown
+  let error: unknown = null
+
+  try {
+    result = await handleMcpCall(msg.method, msg.params ?? {})
+  } catch (e) {
+    error = { code: -32000, message: String(e) }
+  }
+
+  return error
+    ? { jsonrpc: '2.0', id: msg.id, error }
+    : { jsonrpc: '2.0', id: msg.id, result }
+}
+
+// ── HTTP + SSE transport (for MCP clients) ────────────────────────────────────
 interface SseClient {
   res: http.ServerResponse
 }
@@ -91,9 +122,7 @@ let sseClient: SseClient | null = null
 const port = process.env.MCP_PORT ? parseInt(process.env.MCP_PORT, 10) : 57391
 
 const server = http.createServer((req, res) => {
-  res.setHeader('Access-Control-Allow-Origin', '*')
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
+  setCorsHeaders(res)
 
   if (req.method === 'OPTIONS') {
     res.writeHead(204)
@@ -101,6 +130,7 @@ const server = http.createServer((req, res) => {
     return
   }
 
+  // ── GET /sse — SSE channel for MCP clients that use the SSE transport ───────
   if (req.url === '/sse' && req.method === 'GET') {
     res.writeHead(200, {
       'Content-Type': 'text/event-stream',
@@ -108,44 +138,21 @@ const server = http.createServer((req, res) => {
       'Connection': 'keep-alive'
     })
     sseClient = { res }
-
-    // Send endpoint event so client knows where to POST
     res.write(`event: endpoint\ndata: http://127.0.0.1:${port}/message\n\n`)
-
     req.on('close', () => { sseClient = null })
     return
   }
 
+  // ── POST /message — SSE transport message handler ────────────────────────────
   if (req.url === '/message' && req.method === 'POST') {
     let body = ''
     req.on('data', (chunk) => { body += chunk })
     req.on('end', async () => {
       try {
-        const msg = JSON.parse(body) as {
-          jsonrpc: string
-          id: string | number
-          method: string
-          params?: Record<string, unknown>
-        }
-
-        let result: unknown
-        let error: unknown = null
-
-        try {
-          result = await handleMcpCall(msg.method, msg.params ?? {})
-        } catch (e) {
-          error = { code: -32000, message: String(e) }
-        }
-
-        const response = error
-          ? { jsonrpc: '2.0', id: msg.id, error }
-          : { jsonrpc: '2.0', id: msg.id, result }
-
+        const response = await processJsonRpc(body)
         if (sseClient) {
-          const data = JSON.stringify(response)
-          sseClient.res.write(`data: ${data}\n\n`)
+          sseClient.res.write(`data: ${JSON.stringify(response)}\n\n`)
         }
-
         res.writeHead(202)
         res.end()
       } catch (e) {
@@ -156,9 +163,29 @@ const server = http.createServer((req, res) => {
     return
   }
 
+  // ── POST /rpc — Synchronous JSON-RPC (Postman / REST clients) ────────────────
+  // Response is returned directly in the HTTP response body (no SSE needed).
+  // Use this endpoint to test individual MCP calls from any HTTP client.
+  if (req.url === '/rpc' && req.method === 'POST') {
+    let body = ''
+    req.on('data', (chunk) => { body += chunk })
+    req.on('end', async () => {
+      try {
+        const response = await processJsonRpc(body)
+        res.writeHead(200, { 'Content-Type': 'application/json' })
+        res.end(JSON.stringify(response))
+      } catch (e) {
+        res.writeHead(400, { 'Content-Type': 'application/json' })
+        res.end(JSON.stringify({ jsonrpc: '2.0', id: null, error: { code: -32700, message: String(e) } }))
+      }
+    })
+    return
+  }
+
+  // ── GET /health ───────────────────────────────────────────────────────────────
   if (req.url === '/health') {
     res.writeHead(200, { 'Content-Type': 'application/json' })
-    res.end(JSON.stringify({ ok: true }))
+    res.end(JSON.stringify({ ok: true, port, tools: allTools.length }))
     return
   }
 
@@ -167,5 +194,8 @@ const server = http.createServer((req, res) => {
 })
 
 server.listen(port, '127.0.0.1', () => {
-  console.log(`Taskify MCP server listening on http://127.0.0.1:${port}/sse`)
+  console.log(`Taskify MCP server listening on http://127.0.0.1:${port}`)
+  console.log(`  SSE transport : GET  /sse + POST /message`)
+  console.log(`  HTTP transport: POST /rpc  (Postman-friendly)`)
+  console.log(`  Health check  : GET  /health`)
 })

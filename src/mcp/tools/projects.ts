@@ -3,41 +3,68 @@ import type { SendToMain } from '../types'
 export const projectTools = [
   {
     name: 'list_projects',
-    description: 'List all active projects',
+    description: 'List all active (non-archived) projects, sorted alphabetically by name.',
     inputSchema: { type: 'object', properties: {} }
   },
   {
     name: 'create_project',
-    description: 'Create a new project',
+    description: 'Create a new project with a name and display color.',
     inputSchema: {
       type: 'object',
       properties: {
-        name: { type: 'string' },
-        color: { type: 'string', description: 'Hex color e.g. #4CAF50' },
-        description: { type: 'string' }
+        name: {
+          type: 'string',
+          description: 'Display name for the project'
+        },
+        color: {
+          type: 'string',
+          description: 'Hex color code for the project badge (e.g. "#4CAF50")'
+        },
+        description: {
+          type: 'string',
+          description: 'Optional longer description of the project'
+        }
       },
       required: ['name', 'color']
     }
   },
   {
     name: 'update_project',
-    description: 'Update project metadata',
+    description: 'Update the name, color, or description of an existing project.',
     inputSchema: {
       type: 'object',
       properties: {
-        id: { type: 'number' },
-        name: { type: 'string' },
-        description: { type: 'string' }
+        id: {
+          type: 'number',
+          description: 'Numeric ID of the project to update (obtain from list_projects)'
+        },
+        name: {
+          type: 'string',
+          description: 'New display name'
+        },
+        color: {
+          type: 'string',
+          description: 'New hex color code (e.g. "#FF5733")'
+        },
+        description: {
+          type: 'string',
+          description: 'New description text'
+        }
       },
       required: ['id']
     }
   },
   {
     name: 'pull_task_to_today',
-    description: 'Move a backlog task to today',
+    description: "Move a backlog task onto today's calendar date so it appears in the Today view.",
     inputSchema: {
       type: 'object',
-      properties: { taskId: { type: 'number' } },
+      properties: {
+        taskId: {
+          type: 'number',
+          description: 'Numeric ID of the backlog task to pull to today'
+        }
+      },
       required: ['taskId']
     }
   }
