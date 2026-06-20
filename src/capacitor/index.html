@@ -5,11 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Taskify</title>
     <style>
-      /* Default to 0; MainActivity injects the real pixel values as
-         --status-bar-height and --nav-bar-height once the WebView is ready. */
       #root {
-        padding-top: var(--status-bar-height, 0px);
-        padding-bottom: var(--nav-bar-height, 0px);
+        padding-top: env(safe-area-inset-top, 0px);
+        padding-bottom: env(safe-area-inset-bottom, 0px);
       }
     </style>
   </head>

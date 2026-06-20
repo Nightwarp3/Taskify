@@ -5,6 +5,7 @@
  */
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem'
 import { Share } from '@capacitor/share'
+import { StatusBar, Style } from '@capacitor/status-bar'
 import type { TaskifyAPI } from '../../preload'
 import {
   initStorage,
@@ -48,9 +49,19 @@ function emit(channel: string, ...args: unknown[]): void {
   listeners.get(channel)?.forEach((fn) => fn(...args))
 }
 
+function themeToStatusBarStyle(theme: string | undefined): Style {
+  return theme === 'light' ? Style.Light : Style.Dark
+}
+
 export async function installBridge(): Promise<void> {
   // Storage is critical — let this throw if it fails
   await initStorage()
+
+  // Set initial status bar icon style to match the saved theme
+  try {
+    const s = await settingsQueries.get()
+    await StatusBar.setStyle({ style: themeToStatusBarStyle(s.theme) })
+  } catch {}
 
   // Notification setup is best-effort; don't block app launch if permissions
   // haven't been granted yet or the plugin isn't ready
@@ -180,6 +191,9 @@ export async function installBridge(): Promise<void> {
       get: () => settingsQueries.get(),
       set: async (key, value) => {
         await settingsQueries.set(key, value)
+        if (key === 'theme') {
+          try { await StatusBar.setStyle({ style: themeToStatusBarStyle(value as string) }) } catch {}
+        }
         // Reschedule EOD if time settings changed — best-effort, may fail if
         // notification permission hasn't been granted yet (e.g. during wizard)
         if (key === 'endOfDayTime' || key === 'startOfDayTime') {
