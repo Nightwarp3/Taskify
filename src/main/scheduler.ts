@@ -3,23 +3,64 @@ import { Notification, BrowserWindow } from 'electron'
 import { taskQueries, settingsQueries, checkInQueries } from './db'
 import type { Task } from '../shared/types'
 
+function localDateString(): string {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 const activeJobs = new Map<string, schedule.Job>()
+const alarmJobs = new Map<number, schedule.Job>()
 
 function jobKey(type: 'checkin' | 'eod', id: number | string): string {
   return `${type}:${id}`
 }
 
-export function scheduleCheckIns(task: Task, win: BrowserWindow | null): void {
-  if (!task.estimatedMinutes || task.completed) return
+// ── Task alarms (fire once at scheduledTime) ──────────────────────────────
 
-  cancelCheckIns(task.id)
+export function scheduleTaskAlarm(task: Task, win: BrowserWindow | null): void {
+  cancelTaskAlarm(task.id)
+  if (!task.scheduledTime || task.completed) return
+
+  const [h, m] = task.scheduledTime.split(':').map(Number)
+  const fireAt = new Date()
+  fireAt.setHours(h, m, 0, 0)
+
+  if (fireAt <= new Date()) return // already passed today
+
+  const job = schedule.scheduleJob(fireAt, () => {
+    const current = taskQueries.getById(task.id)
+    if (!current || current.completed) return
+
+    const notif = new Notification({
+      title: 'Taskify — Task Time',
+      body: `Time for: "${current.title}"`,
+      closeButtonText: 'Dismiss'
+    })
+    notif.on('click', () => { win?.show(); win?.focus() })
+    notif.show()
+    alarmJobs.delete(task.id)
+  })
+  if (job) alarmJobs.set(task.id, job)
+}
+
+export function cancelTaskAlarm(taskId: number): void {
+  const job = alarmJobs.get(taskId)
+  if (job) {
+    job.cancel()
+    alarmJobs.delete(taskId)
+  }
+}
+
+// ── Check-ins (fire at intervals for top-priority task only) ──────────────
+
+function scheduleCheckIns(task: Task, win: BrowserWindow | null): void {
+  if (!task.estimatedMinutes || task.completed) return
 
   const settings = settingsQueries.get()
   const intervalMs = settings.defaultCheckInInterval * 60 * 1000
   const now = Date.now()
   const totalMs = task.estimatedMinutes * 60 * 1000
 
-  // Fire check-ins at each interval within the estimated window
   let offset = intervalMs
   while (offset < totalMs) {
     const fireAt = new Date(now + offset)
@@ -38,12 +79,11 @@ export function scheduleCheckIns(task: Task, win: BrowserWindow | null): void {
 
 export function cancelCheckIns(taskId: number): void {
   for (const [key, job] of activeJobs) {
-    if (key.startsWith(`checkin:`) && key.includes(`:${taskId}`)) {
+    if (key.startsWith('checkin:')) {
       job.cancel()
       activeJobs.delete(key)
     }
   }
-  // cancel by iterating check_in ids for this task
   const pending = checkInQueries.pendingForTask(taskId)
   for (const ci of pending) {
     const key = jobKey('checkin', ci.id)
@@ -53,6 +93,28 @@ export function cancelCheckIns(taskId: number): void {
       activeJobs.delete(key)
     }
   }
+}
+
+// Cancel all in-memory check-in jobs (used before rescheduling)
+function cancelAllCheckInJobs(): void {
+  for (const [key, job] of activeJobs) {
+    if (key.startsWith('checkin:')) {
+      job.cancel()
+      activeJobs.delete(key)
+    }
+  }
+}
+
+// Reschedule check-ins so only the highest-priority incomplete task with an
+// estimate gets check-ins. Call this after any task mutation (add, update,
+// complete, reorder).
+export function rescheduleCheckIns(win: BrowserWindow | null): void {
+  cancelAllCheckInJobs()
+
+  const today = localDateString()
+  const tasks = taskQueries.listByDate(today)
+  const topTask = tasks.find((t) => !t.completed && t.estimatedMinutes)
+  if (topTask) scheduleCheckIns(topTask, win)
 }
 
 function fireCheckIn(task: Task, checkInId: number, win: BrowserWindow | null): void {
@@ -78,12 +140,11 @@ function fireCheckIn(task: Task, checkInId: number, win: BrowserWindow | null): 
 
   notif.on('action', (_, index) => {
     if (index === 0) {
-      // Mark complete
       taskQueries.update(task.id, { completed: true })
       cancelCheckIns(task.id)
+      rescheduleCheckIns(win)
       win?.webContents.send('tasks:refreshed')
     } else if (index === 1) {
-      // +15 min: schedule one more check-in 15 min from now
       const snoozeUntil = new Date(Date.now() + 15 * 60 * 1000)
       checkInQueries.snooze(checkInId, snoozeUntil.toISOString())
       const newCi = checkInQueries.add(task.id, snoozeUntil.toISOString())
@@ -99,16 +160,17 @@ function fireCheckIn(task: Task, checkInId: number, win: BrowserWindow | null): 
   notif.show()
 }
 
-export function scheduleEndOfDay(win: BrowserWindow | null): void {
+// ── End-of-day reminder ───────────────────────────────────────────────────
+
+export function scheduleEndOfDay(win: () => BrowserWindow | null): void {
   const key = jobKey('eod', 'daily')
   activeJobs.get(key)?.cancel()
 
   const settings = settingsQueries.get()
   const [h, m] = settings.endOfDayTime.split(':').map(Number)
 
-  // Fire daily at end-of-day time
   const job = schedule.scheduleJob({ hour: h, minute: m }, () => {
-    const today = new Date().toISOString().slice(0, 10)
+    const today = localDateString()
     const tasks = taskQueries.listByDate(today)
     const incomplete = tasks.filter((t) => !t.completed)
 
@@ -120,8 +182,9 @@ export function scheduleEndOfDay(win: BrowserWindow | null): void {
       closeButtonText: 'Dismiss'
     })
     notif.on('click', () => {
-      win?.show()
-      win?.focus()
+      const w = win()
+      w?.show()
+      w?.focus()
     })
     notif.show()
   })

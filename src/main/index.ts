@@ -1,10 +1,15 @@
 import { app, BrowserWindow, Tray, Menu, nativeImage, shell } from 'electron'
 import path, { join } from 'path'
+
+function localDateString(): string {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
 import { fork, ChildProcess } from 'child_process'
 import { is } from '@electron-toolkit/utils'
 import { registerIpcHandlers } from './ipc'
-import { scheduleEndOfDay } from './scheduler'
-import { templateQueries, settingsQueries } from './db'
+import { scheduleEndOfDay, rescheduleCheckIns, scheduleTaskAlarm } from './scheduler'
+import { templateQueries, settingsQueries, taskQueries } from './db'
 
 let win: BrowserWindow | null = null
 let tray: Tray | null = null
@@ -36,6 +41,7 @@ function createWindow(): BrowserWindow {
 
   win.on('show', () => {
     generateTemplatesNow()
+    scheduleAlarmsForToday()
   })
 
   win.webContents.setWindowOpenHandler(({ url }) => {
@@ -53,11 +59,22 @@ function createWindow(): BrowserWindow {
 }
 
 function generateTemplatesNow(): void {
-  const today = new Date().toISOString().slice(0, 10)
+  const today = localDateString()
   const newTasks = templateQueries.generateDueTasks(today)
   if (newTasks.length > 0) {
     win?.webContents.send('tasks:refreshed')
   }
+}
+
+function scheduleAlarmsForToday(): void {
+  const today = localDateString()
+  const tasks = taskQueries.listByDate(today)
+  for (const task of tasks) {
+    if (task.scheduledTime && !task.completed) {
+      scheduleTaskAlarm(task, win)
+    }
+  }
+  rescheduleCheckIns(win)
 }
 
 function startMcpServer(): void {
@@ -112,12 +129,12 @@ function handleMcpBridgeRequest(req: { id: string; type: string; payload: unknow
       }
       case 'tasks:listToday': {
         const { taskQueries } = require('./db')
-        respond(taskQueries.listByDate(new Date().toISOString().slice(0, 10)))
+        respond(taskQueries.listByDate(localDateString()))
         break
       }
       case 'tasks:listOverdue': {
         const { taskQueries } = require('./db')
-        respond(taskQueries.listOverdue(new Date().toISOString().slice(0, 10)))
+        respond(taskQueries.listOverdue(localDateString()))
         break
       }
       case 'tasks:listByProject': {
@@ -143,7 +160,7 @@ function handleMcpBridgeRequest(req: { id: string; type: string; payload: unknow
       }
       case 'tasks:create': {
         const { taskQueries } = require('./db')
-        const today = new Date().toISOString().slice(0, 10)
+        const today = localDateString()
         respond(taskQueries.add(p.title as string, (p.date as string) ?? today, {
           estimatedMinutes: p.estimatedMinutes as number | undefined,
           projectId: p.projectId as number | undefined,
@@ -174,7 +191,7 @@ function handleMcpBridgeRequest(req: { id: string; type: string; payload: unknow
       }
       case 'tasks:pullToToday': {
         const { taskQueries } = require('./db')
-        respond(taskQueries.pullToToday(p.taskId as number, new Date().toISOString().slice(0, 10)))
+        respond(taskQueries.pullToToday(p.taskId as number, localDateString()))
         break
       }
       case 'projects:list': {
@@ -244,6 +261,7 @@ app.whenReady().then(() => {
   createTray()
   scheduleEndOfDay(() => win)
   generateTemplatesNow()
+  scheduleAlarmsForToday()
   startMcpServer()
 
   app.on('activate', () => {

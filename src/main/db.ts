@@ -33,6 +33,7 @@ interface StoredTask {
   notes: string | null
   links: string | null
   estimatedMinutes: number | null
+  scheduledTime: string | null
   sortOrder: number
   createdAt: string
   projectId: number | null
@@ -118,6 +119,7 @@ export const taskQueries = {
     date: string,
     opts: {
       estimatedMinutes?: number
+      scheduledTime?: string
       projectId?: number | null
       tags?: string[]
       backlog?: boolean
@@ -151,6 +153,7 @@ export const taskQueries = {
       notes: null,
       links: null,
       estimatedMinutes: opts.estimatedMinutes ?? null,
+      scheduledTime: opts.scheduledTime ?? null,
       sortOrder,
       createdAt: new Date().toISOString(),
       projectId: opts.projectId ?? null,
@@ -171,6 +174,7 @@ export const taskQueries = {
       notes: string | null
       links: string | null
       estimatedMinutes: number | null
+      scheduledTime: string | null
       tags: string | null
       projectId: number | null
     }>
@@ -188,6 +192,7 @@ export const taskQueries = {
     if (fields.notes !== undefined) updated.notes = fields.notes
     if (fields.links !== undefined) updated.links = fields.links
     if (fields.estimatedMinutes !== undefined) updated.estimatedMinutes = fields.estimatedMinutes
+    if (fields.scheduledTime !== undefined) updated.scheduledTime = fields.scheduledTime
     if (fields.tags !== undefined) updated.tags = fields.tags
     if (fields.projectId !== undefined) updated.projectId = fields.projectId
 

@@ -1,11 +1,15 @@
 import { useState, useMemo } from 'react'
 import { useTasks, useOverdueTasks } from '../hooks/useTasks'
-import AddTaskBar from '../components/AddTaskBar'
+import AddTaskModal from '../components/AddTaskModal'
 import TaskList from '../components/TaskList'
 import OverdueTasks from '../components/OverdueTasks'
 import type { RecurrenceSchedule } from '../../../shared/types'
 
-const today = new Date().toISOString().slice(0, 10)
+function localDateString(): string {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+const today = localDateString()
 
 function formatDate(iso: string): string {
   return new Date(iso + 'T00:00:00').toLocaleDateString(undefined, {
@@ -23,6 +27,7 @@ export default function TodayView({ onNavigateToTemplate }: Props) {
   const { tasks, loading, addTask, updateTask, deleteTask, reorderTasks } = useTasks(today)
   const { groups, updateTask: updateOverdue, deleteTask: deleteOverdue } = useOverdueTasks(today)
   const [activeFilter, setActiveFilter] = useState<string | null>(null)
+  const [showModal, setShowModal] = useState(false)
 
   const allTags = useMemo(() => {
     const tagSet = new Set<string>()
@@ -41,6 +46,7 @@ export default function TodayView({ onNavigateToTemplate }: Props) {
     title: string,
     opts?: {
       estimatedMinutes?: number
+      scheduledTime?: string
       tags?: string[]
       projectId?: number | null
       schedule?: RecurrenceSchedule
@@ -68,7 +74,7 @@ export default function TodayView({ onNavigateToTemplate }: Props) {
   const incomplete = filteredTasks.filter((t) => !t.completed).length
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full relative">
       {/* Date header */}
       <div className="px-4 pt-3 pb-2 shrink-0">
         <p className="text-xs font-medium text-muted">{formatDate(today)}</p>
@@ -78,9 +84,6 @@ export default function TodayView({ onNavigateToTemplate }: Props) {
           </p>
         )}
       </div>
-
-      {/* Add bar */}
-      <AddTaskBar onAdd={handleAdd} />
 
       {/* Tag filter bar */}
       {allTags.length > 0 && (
@@ -120,12 +123,18 @@ export default function TodayView({ onNavigateToTemplate }: Props) {
         </div>
       )}
 
-      {/* Scrollable content */}
-      <div className="flex-1 overflow-y-auto">
+      {/* Scrollable task list */}
+      <div className="flex-1 overflow-y-auto pb-16">
         {loading ? (
           <div className="flex items-center justify-center h-24 text-ghost text-sm">Loading…</div>
         ) : (
           <>
+            {tasks.length === 0 && groups.length === 0 && (
+              <div className="flex flex-col items-center justify-center h-32 text-ghost text-sm gap-2">
+                <span>No tasks today</span>
+                <span className="text-xs text-ghost/60">Tap + to add one</span>
+              </div>
+            )}
             <div className="px-3">
               <TaskList
                 tasks={filteredTasks}
@@ -137,7 +146,6 @@ export default function TodayView({ onNavigateToTemplate }: Props) {
               />
             </div>
 
-            {/* Carry-over from previous days */}
             {groups.length > 0 && (
               <div className="mt-2">
                 <OverdueTasks
@@ -151,6 +159,22 @@ export default function TodayView({ onNavigateToTemplate }: Props) {
           </>
         )}
       </div>
+
+      {/* Floating add button */}
+      <button
+        onClick={() => setShowModal(true)}
+        title="Add task"
+        className="fixed bottom-5 right-5 w-12 h-12 rounded-full bg-accent text-on-accent shadow-elev-1 flex items-center justify-center text-2xl font-light hover:opacity-90 active:scale-95 transition-all z-40"
+      >
+        +
+      </button>
+
+      {showModal && (
+        <AddTaskModal
+          onAdd={handleAdd}
+          onClose={() => setShowModal(false)}
+        />
+      )}
     </div>
   )
 }

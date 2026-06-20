@@ -7,6 +7,7 @@ export interface Task {
   notes: string | null
   links: string | null    // JSON array of strings
   estimatedMinutes: number | null
+  scheduledTime: string | null  // HH:MM local time, triggers notification when reached
   sortOrder: number
   createdAt: string
   projectId: number | null
@@ -114,6 +115,7 @@ export type IpcChannel =
 export interface TaskAddPayload {
   title: string
   estimatedMinutes?: number
+  scheduledTime?: string
   date?: string
   projectId?: number | null
   tags?: string[]
@@ -129,6 +131,7 @@ export interface TaskUpdatePayload {
   notes?: string | null
   links?: string[]
   estimatedMinutes?: number | null
+  scheduledTime?: string | null
   tags?: string[]
   projectId?: number | null
 }

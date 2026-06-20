@@ -1,9 +1,13 @@
 import { useState, useEffect, useCallback } from 'react'
-import type { Project, Task, RecurringTemplate, RecurrenceSchedule } from '../../../shared/types'
+import type { Project, Task } from '../../../shared/types'
 import TaskItem from '../components/TaskItem'
 import AddTaskBar from '../components/AddTaskBar'
 
-const today = new Date().toISOString().slice(0, 10)
+function localDateString(): string {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+const today = localDateString()
 
 const PROJECT_COLORS = [
   '#4CAF50', '#2196F3', '#FF9800', '#9C27B0',
@@ -11,18 +15,7 @@ const PROJECT_COLORS = [
   '#E91E63', '#3F51B5'
 ]
 
-function scheduleLabel(s: RecurrenceSchedule): string {
-  const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-  switch (s.type) {
-    case 'daily': return 'Daily'
-    case 'weekly': return `Weekly (${DOW[s.dayOfWeek]})`
-    case 'every_n_days': return `Every ${s.n} days`
-    case 'monthly': return `Monthly (day ${s.dayOfMonth})`
-  }
-}
-
-// ── Projects sub-tab ──────────────────────────────────────────────────────
-function ProjectsTab() {
+export default function ProjectsView() {
   const [projects, setProjects] = useState<Project[]>([])
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const [tasks, setTasks] = useState<Task[]>([])
@@ -216,10 +209,7 @@ function ProjectsTab() {
             })}
 
             <div className="px-4 pb-3">
-              <AddTaskBar
-                onAdd={addBacklogTask}
-                projectId={selectedId}
-              />
+              <AddTaskBar onAdd={addBacklogTask} projectId={selectedId} />
             </div>
           </div>
         </div>
@@ -233,184 +223,3 @@ function ProjectsTab() {
     </div>
   )
 }
-
-// ── Recurring sub-tab ─────────────────────────────────────────────────────
-function RecurringTab() {
-  const [templates, setTemplates] = useState<RecurringTemplate[]>([])
-  const [editingId, setEditingId] = useState<number | null>(null)
-
-  const load = async () => {
-    const list = await window.taskify.templates.list()
-    setTemplates(list)
-  }
-
-  useEffect(() => { load() }, [])
-
-  const toggleActive = async (id: number, active: boolean) => {
-    await window.taskify.templates.setActive(id, active)
-    await load()
-  }
-
-  const deleteTemplate = async (id: number) => {
-    await window.taskify.templates.delete(id)
-    if (editingId === id) setEditingId(null)
-    await load()
-  }
-
-  return (
-    <div className="flex flex-col h-full overflow-y-auto">
-      <div className="px-4 pt-3 pb-2 shrink-0">
-        <p className="text-xs text-ghost">
-          Recurring tasks are created automatically each day their schedule fires.
-        </p>
-      </div>
-
-      {templates.length === 0 ? (
-        <div className="flex-1 flex items-center justify-center text-ghost text-sm">
-          No recurring tasks yet — add one with the ↺ repeat picker in Today view
-        </div>
-      ) : (
-        <div className="px-4 space-y-2 pb-4">
-          {templates.map((tmpl) => (
-            <div key={tmpl.id} className="bg-raised border border-rim rounded-lg p-3">
-              <div className="flex items-start gap-2">
-                <span className="text-accent text-sm mt-0.5 shrink-0">↺</span>
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium text-ink truncate">{tmpl.title}</div>
-                  <div className="text-xs text-muted mt-0.5">{scheduleLabel(tmpl.schedule)}</div>
-                  {tmpl.estimatedMinutes && (
-                    <div className="text-xs text-ghost">⏱ {tmpl.estimatedMinutes} min</div>
-                  )}
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  {/* Active toggle */}
-                  <button
-                    onClick={() => toggleActive(tmpl.id, !tmpl.active)}
-                    className={`text-xs px-2 py-0.5 rounded-pill font-medium transition-colors ${
-                      tmpl.active
-                        ? 'bg-accent/10 text-accent border border-accent/30'
-                        : 'bg-well text-ghost border border-rim'
-                    }`}
-                  >
-                    {tmpl.active ? 'Active' : 'Paused'}
-                  </button>
-                  <button
-                    onClick={() => deleteTemplate(tmpl.id)}
-                    className="text-ghost hover:text-danger text-xs transition-colors"
-                    title="Delete template"
-                  >
-                    ✕
-                  </button>
-                </div>
-              </div>
-
-              {editingId === tmpl.id && (
-                <TemplateEditPanel
-                  template={tmpl}
-                  onSave={async (fields) => {
-                    await window.taskify.templates.update({ id: tmpl.id, ...fields })
-                    setEditingId(null)
-                    await load()
-                  }}
-                  onCancel={() => setEditingId(null)}
-                />
-              )}
-
-              {editingId !== tmpl.id && (
-                <button
-                  onClick={() => setEditingId(tmpl.id)}
-                  className="mt-1.5 text-xs text-ghost hover:text-muted transition-colors"
-                >
-                  Edit
-                </button>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
-
-function TemplateEditPanel({
-  template,
-  onSave,
-  onCancel
-}: {
-  template: RecurringTemplate
-  onSave: (fields: { title?: string; estimatedMinutes?: number | null }) => Promise<void>
-  onCancel: () => void
-}) {
-  const [title, setTitle] = useState(template.title)
-  const [estimate, setEstimate] = useState(String(template.estimatedMinutes ?? ''))
-
-  const save = async () => {
-    const mins = estimate ? parseInt(estimate, 10) : null
-    await onSave({
-      title: title.trim() || undefined,
-      estimatedMinutes: mins && !isNaN(mins) ? mins : null
-    })
-  }
-
-  return (
-    <div className="mt-2 pt-2 border-t border-rim space-y-2">
-      <input
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        className="w-full bg-well border border-rim rounded px-2 py-1 text-sm text-ink outline-none focus:border-accent"
-      />
-      <div className="flex items-center gap-2">
-        <span className="text-xs text-ghost">⏱</span>
-        <input
-          type="number"
-          value={estimate}
-          onChange={(e) => setEstimate(e.target.value)}
-          placeholder="Est. minutes"
-          className="w-20 bg-well border border-rim rounded px-2 py-1 text-xs text-ink outline-none focus:border-accent"
-        />
-        <span className="text-xs text-ghost">min</span>
-      </div>
-      <div className="flex gap-2 justify-end">
-        <button onClick={onCancel} className="text-xs text-ghost hover:text-muted">Cancel</button>
-        <button onClick={save} className="text-xs px-3 py-1 bg-accent text-on-accent rounded-pill font-medium hover:opacity-90">
-          Save
-        </button>
-      </div>
-    </div>
-  )
-}
-
-// ── Main ProjectsView ─────────────────────────────────────────────────────
-type SubTab = 'projects' | 'recurring'
-
-export default function ProjectsView() {
-  const [subTab, setSubTab] = useState<SubTab>('projects')
-
-  return (
-    <div className="flex flex-col h-full">
-      {/* Sub-tab nav */}
-      <div className="px-4 pt-3 shrink-0 flex gap-1 border-b border-rim pb-2">
-        {(['projects', 'recurring'] as SubTab[]).map((t) => (
-          <button
-            key={t}
-            onClick={() => setSubTab(t)}
-            className={`text-xs px-3 py-1 rounded-pill font-medium transition-colors capitalize ${
-              subTab === t
-                ? 'bg-accent text-on-accent'
-                : 'text-muted hover:text-ink hover:bg-well'
-            }`}
-          >
-            {t === 'recurring' ? '↺ Recurring' : 'Projects'}
-          </button>
-        ))}
-      </div>
-
-      <div className="flex-1 overflow-hidden">
-        {subTab === 'projects' && <ProjectsTab />}
-        {subTab === 'recurring' && <RecurringTab />}
-      </div>
-    </div>
-  )
-}
-
-export { RecurringTab }

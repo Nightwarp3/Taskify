@@ -9,7 +9,13 @@ import {
   exportData,
   importData
 } from './db'
-import { scheduleCheckIns, cancelCheckIns, scheduleEndOfDay } from './scheduler'
+import {
+  rescheduleCheckIns,
+  cancelCheckIns,
+  scheduleTaskAlarm,
+  cancelTaskAlarm,
+  scheduleEndOfDay
+} from './scheduler'
 import type {
   TaskAddPayload,
   TaskUpdatePayload,
@@ -20,6 +26,11 @@ import type {
   TemplateUpdatePayload,
   ExportData
 } from '../shared/types'
+
+function localDateString(): string {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
 
 export function registerIpcHandlers(getWindow: () => BrowserWindow | null): void {
   // ── Tasks ─────────────────────────────────────────────────────────────────
@@ -36,71 +47,78 @@ export function registerIpcHandlers(getWindow: () => BrowserWindow | null): void
   })
 
   ipcMain.handle('tasks:add', (_, payload: TaskAddPayload) => {
-    const today = new Date().toISOString().slice(0, 10)
-    const { title, estimatedMinutes, date, projectId, tags, backlog, templateId, schedule } = payload
+    const today = localDateString()
+    const { title, estimatedMinutes, scheduledTime, date, projectId, tags, backlog, templateId, schedule } = payload
 
-    // If adding with a recurrence schedule, create template + first instance
     if (schedule) {
-      const tmpl = templateQueries.add({
-        title,
-        schedule,
-        estimatedMinutes,
-        projectId,
-        tags
-      })
+      const tmpl = templateQueries.add({ title, schedule, estimatedMinutes, projectId, tags })
       const taskDate = date ?? today
       const task = taskQueries.add(title, taskDate, {
         estimatedMinutes,
+        scheduledTime,
         projectId,
         tags,
         templateId: tmpl.id
       })
-      scheduleCheckIns(task, getWindow())
+      if (task.scheduledTime) scheduleTaskAlarm(task, getWindow())
+      rescheduleCheckIns(getWindow())
       return task
     }
 
     const task = taskQueries.add(title, date ?? today, {
       estimatedMinutes,
+      scheduledTime,
       projectId,
       tags,
       backlog,
       templateId
     })
-    if (!backlog) scheduleCheckIns(task, getWindow())
+    if (!backlog) {
+      if (task.scheduledTime) scheduleTaskAlarm(task, getWindow())
+      rescheduleCheckIns(getWindow())
+    }
     return task
   })
 
   ipcMain.handle('tasks:update', (_, payload: TaskUpdatePayload) => {
-    const { id, links, tags, ...rest } = payload
+    const { id, links, tags, scheduledTime, ...rest } = payload
     const updated = taskQueries.update(id, {
       ...rest,
+      scheduledTime: scheduledTime !== undefined ? scheduledTime : undefined,
       links: links !== undefined ? JSON.stringify(links) : undefined,
       tags: tags !== undefined ? JSON.stringify(tags) : undefined
     })
     if (updated) {
-      if (updated.completed) {
-        cancelCheckIns(id)
-      } else if (payload.estimatedMinutes !== undefined) {
-        scheduleCheckIns(updated, getWindow())
+      // Reschedule alarm if scheduledTime changed
+      cancelTaskAlarm(id)
+      if (updated.scheduledTime && !updated.completed) {
+        scheduleTaskAlarm(updated, getWindow())
       }
+      rescheduleCheckIns(getWindow())
     }
     return updated
   })
 
   ipcMain.handle('tasks:delete', (_, id: number) => {
     cancelCheckIns(id)
+    cancelTaskAlarm(id)
     taskQueries.delete(id)
+    rescheduleCheckIns(getWindow())
     return { ok: true }
   })
 
   ipcMain.handle('tasks:reorder', (_, payload: TaskReorderPayload) => {
     taskQueries.reorder(payload.date, payload.orderedIds)
+    rescheduleCheckIns(getWindow())
     return { ok: true }
   })
 
   ipcMain.handle('tasks:pullToToday', (_, id: number) => {
-    const today = new Date().toISOString().slice(0, 10)
-    return taskQueries.pullToToday(id, today)
+    const today = localDateString()
+    const task = taskQueries.pullToToday(id, today)
+    if (task?.scheduledTime) scheduleTaskAlarm(task, getWindow())
+    rescheduleCheckIns(getWindow())
+    return task
   })
 
   // ── Projects ──────────────────────────────────────────────────────────────
@@ -160,6 +178,7 @@ export function registerIpcHandlers(getWindow: () => BrowserWindow | null): void
     const newTasks = templateQueries.generateDueTasks(today)
     if (newTasks.length > 0) {
       getWindow()?.webContents.send('tasks:refreshed')
+      rescheduleCheckIns(getWindow())
     }
     return newTasks
   })
@@ -171,7 +190,7 @@ export function registerIpcHandlers(getWindow: () => BrowserWindow | null): void
 
   ipcMain.handle('settings:set', (_, key: string, value: unknown) => {
     settingsQueries.set(key as never, value)
-    scheduleEndOfDay(getWindow())
+    scheduleEndOfDay(getWindow)
     return { ok: true }
   })
 
@@ -211,6 +230,7 @@ export function registerIpcHandlers(getWindow: () => BrowserWindow | null): void
 
       const imported = importData(data, mode, includeSettings)
       win?.webContents.send('tasks:refreshed')
+      rescheduleCheckIns(getWindow())
       return { ok: true, imported }
     }
   )
@@ -225,5 +245,18 @@ export function registerIpcHandlers(getWindow: () => BrowserWindow | null): void
       }).show()
     }
     return { granted: supported }
+  })
+
+  // ── Check-ins (legacy channels, kept for API compatibility) ──────────────
+  ipcMain.handle('checkins:schedule', (_, taskId: number) => {
+    const task = taskQueries.getById(taskId)
+    if (task) rescheduleCheckIns(getWindow())
+    return { ok: true }
+  })
+
+  ipcMain.handle('checkins:cancel', (_, taskId: number) => {
+    cancelCheckIns(taskId)
+    rescheduleCheckIns(getWindow())
+    return { ok: true }
   })
 }

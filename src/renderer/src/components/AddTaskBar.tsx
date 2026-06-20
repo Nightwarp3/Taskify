@@ -1,4 +1,9 @@
 import { useState, useRef } from 'react'
+
+function localDateString(): string {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
 import type { RecurrenceSchedule } from '../../../shared/types'
 
 interface Props {
@@ -53,7 +58,7 @@ export default function AddTaskBar({ onAdd, projectId }: Props) {
     switch (repeatType) {
       case 'daily': return { type: 'daily' }
       case 'weekly': return { type: 'weekly', dayOfWeek: weekDay }
-      case 'every_n_days': return { type: 'every_n_days', n: parseInt(everyN, 10) || 14, anchorDate: today }
+      case 'every_n_days': return { type: 'every_n_days', n: parseInt(everyN, 10) || 14, anchorDate: localDateString() }
       case 'monthly': return { type: 'monthly', dayOfMonth: parseInt(monthDay, 10) || 1 }
     }
   }

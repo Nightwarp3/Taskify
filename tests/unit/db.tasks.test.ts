@@ -92,6 +92,16 @@ describe('add()', () => {
     expect(task.estimatedMinutes).toBe(30)
   })
 
+  it('defaults scheduledTime to null', () => {
+    const task = taskQueries.add('No time', TODAY)
+    expect(task.scheduledTime).toBeNull()
+  })
+
+  it('stores scheduledTime when provided', () => {
+    const task = taskQueries.add('Morning standup', TODAY, { scheduledTime: '09:30' })
+    expect(task.scheduledTime).toBe('09:30')
+  })
+
   it('creates a backlog task with backlog=true, not in date order', () => {
     const task = taskQueries.add('Backlog item', TODAY, { backlog: true, projectId: 1 })
     expect(task.backlog).toBe(true)
@@ -171,6 +181,18 @@ describe('update()', () => {
     const t = taskQueries.add('Task', TODAY)
     const updated = taskQueries.update(t.id, { projectId: 7 })
     expect(updated?.projectId).toBe(7)
+  })
+
+  it('updates scheduledTime', () => {
+    const t = taskQueries.add('Task', TODAY)
+    const updated = taskQueries.update(t.id, { scheduledTime: '14:00' })
+    expect(updated?.scheduledTime).toBe('14:00')
+  })
+
+  it('clears scheduledTime when set to null', () => {
+    const t = taskQueries.add('Task', TODAY, { scheduledTime: '10:00' })
+    const updated = taskQueries.update(t.id, { scheduledTime: null })
+    expect(updated?.scheduledTime).toBeNull()
   })
 
   it('returns null for a nonexistent id', () => {

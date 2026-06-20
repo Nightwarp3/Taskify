@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import appLogo from '../assets/taskify-solid-original.png'
 import type { AppSettings } from '../../../shared/types'
 
 interface Props {
@@ -10,7 +11,7 @@ interface Props {
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
 const inputCls =
-  'bg-well border border-rim rounded-md px-2.5 py-1.5 text-sm text-ink outline-none focus:border-accent transition-colors w-24'
+  'bg-well border border-rim rounded-md px-2.5 py-1.5 text-sm text-ink outline-none focus:border-accent transition-colors w-36'
 
 function ProgressDots({ step, total }: { step: number; total: number }) {
   return (
@@ -85,13 +86,7 @@ export default function WizardModal({ onComplete, onThemeChange, currentTheme }:
         {/* Step 0 — Welcome */}
         {step === 0 && (
           <div className="text-center">
-            <div className="w-14 h-14 mx-auto mb-4 rounded-xl flex items-center justify-center"
-              style={{ background: 'linear-gradient(135deg, #4191FF, #195FDC)' }}>
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
-                <polyline points="5.5,12.5 10,17 18.5,8" stroke="white" strokeWidth="2.5"
-                  strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </div>
+            <img src={appLogo} className="w-16 h-16 mx-auto mb-4 rounded-xl" alt="Taskify" />
             <h2 className="text-base font-semibold text-ink mb-2">Welcome to Taskify</h2>
             <p className="text-xs text-muted mb-5">
               A simple daily task manager that keeps you focused and checks in while you work.

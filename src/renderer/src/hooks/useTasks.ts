@@ -23,6 +23,7 @@ export function useTasks(date: string) {
       title: string,
       opts?: {
         estimatedMinutes?: number
+        scheduledTime?: string
         tags?: string[]
         projectId?: number | null
         schedule?: RecurrenceSchedule
@@ -32,6 +33,7 @@ export function useTasks(date: string) {
         title,
         date,
         estimatedMinutes: opts?.estimatedMinutes,
+        scheduledTime: opts?.scheduledTime,
         tags: opts?.tags,
         projectId: opts?.projectId,
         schedule: opts?.schedule
