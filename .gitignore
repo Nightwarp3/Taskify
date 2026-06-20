@@ -10,3 +10,15 @@ out/
 Thumbs.db
 *.log
 test-results
+
+# Android build artifacts (native project committed, build output ignored)
+android/.gradle/
+android/app/build/
+android/app/release/
+android/build/
+android/keystore.jks
+
+# iOS build artifacts
+ios/App/Pods/
+ios/App/App/build/
+ios/DerivedData/

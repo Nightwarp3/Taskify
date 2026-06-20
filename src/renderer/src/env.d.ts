@@ -7,3 +7,11 @@ declare global {
     taskify: TaskifyAPI
   }
 }
+
+interface ImportMetaEnv {
+  readonly VITE_PLATFORM?: 'capacitor' | undefined
+}
+
+interface ImportMeta {
+  readonly env: ImportMetaEnv
+}

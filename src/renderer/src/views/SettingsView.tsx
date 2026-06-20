@@ -202,8 +202,8 @@ export default function SettingsView({ onThemeChange, onReopenWizard }: Props) {
         </div>
       </div>
 
-      {/* MCP Server */}
-      <div className="bg-raised rounded-lg border border-rim p-3 shadow-elev-1">
+      {/* MCP Server — desktop only */}
+      {import.meta.env.VITE_PLATFORM !== 'capacitor' && <div className="bg-raised rounded-lg border border-rim p-3 shadow-elev-1">
         <div className="text-xs font-semibold text-muted uppercase tracking-wider mb-3">MCP Server</div>
         <div className="space-y-3">
           <Field label="Enable MCP server" hint="Expose Taskify to local AI agents (Claude Desktop, etc.)">
@@ -244,7 +244,7 @@ export default function SettingsView({ onThemeChange, onReopenWizard }: Props) {
             </div>
           )}
         </div>
-      </div>
+      </div>}
 
       {saved && (
         <div className="flex items-center gap-1.5 text-xs text-accent font-medium">

@@ -1,0 +1,98 @@
+name: Build and Release iOS
+
+# Stubbed — activate when Apple Developer account is ready.
+# Change trigger from workflow_dispatch to push.tags once signing secrets are set.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to build (e.g. v1.2.3)'
+        required: true
+
+# Required secrets (add in repo Settings → Secrets → Actions):
+#   APPLE_CERTIFICATE_BASE64       — base64-encoded .p12 signing certificate
+#   APPLE_CERTIFICATE_PASSWORD     — .p12 password
+#   APPLE_PROVISIONING_PROFILE     — base64-encoded .mobileprovision
+#   APPLE_CONNECT_API_KEY          — App Store Connect API key JSON (for TestFlight upload)
+
+jobs:
+  ios:
+    runs-on: macos-latest
+    environment: Release
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.inputs.tag }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build web bundle
+        run: npm run build:web
+
+      - name: Sync Capacitor iOS
+        run: npx cap sync ios
+
+      # ── Signing setup ─────────────────────────────────────────────────────
+      # Uncomment when Apple Developer account and secrets are available.
+      #
+      # - name: Import signing certificate
+      #   env:
+      #     APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
+      #     APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+      #   run: |
+      #     KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+      #     security create-keychain -p "" $KEYCHAIN_PATH
+      #     security default-keychain -s $KEYCHAIN_PATH
+      #     security unlock-keychain -p "" $KEYCHAIN_PATH
+      #     echo "$APPLE_CERTIFICATE_BASE64" | base64 -d > $RUNNER_TEMP/cert.p12
+      #     security import $RUNNER_TEMP/cert.p12 -k $KEYCHAIN_PATH \
+      #       -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+      #     security set-key-partition-list -S apple-tool:,apple: -k "" $KEYCHAIN_PATH
+      #
+      # - name: Install provisioning profile
+      #   run: |
+      #     mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+      #     echo "${{ secrets.APPLE_PROVISIONING_PROFILE }}" | base64 -d \
+      #       > ~/Library/MobileDevice/Provisioning\ Profiles/profile.mobileprovision
+      #
+      # ── Build ─────────────────────────────────────────────────────────────
+      # - name: Build iOS archive
+      #   run: |
+      #     xcodebuild -workspace ios/App/App.xcworkspace \
+      #       -scheme App \
+      #       -configuration Release \
+      #       -archivePath $RUNNER_TEMP/App.xcarchive \
+      #       archive
+      #
+      # - name: Export IPA
+      #   run: |
+      #     xcodebuild -exportArchive \
+      #       -archivePath $RUNNER_TEMP/App.xcarchive \
+      #       -exportPath $RUNNER_TEMP/export \
+      #       -exportOptionsPlist ios/ExportOptions.plist
+      #
+      # ── Upload to TestFlight ──────────────────────────────────────────────
+      # - name: Upload to TestFlight
+      #   uses: apple-actions/upload-testflight-build@v1
+      #   with:
+      #     app-path: ${{ runner.temp }}/export/App.ipa
+      #     issuer-id: ${{ secrets.APPLE_CONNECT_ISSUER_ID }}
+      #     api-key-id: ${{ secrets.APPLE_CONNECT_API_KEY_ID }}
+      #     api-private-key: ${{ secrets.APPLE_CONNECT_API_KEY }}
+
+      - name: iOS build not yet configured
+        run: |
+          echo "iOS build is stubbed. Uncomment steps above once Apple Developer account is ready."
+          echo "See comments in this workflow for required secrets."
