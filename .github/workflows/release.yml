@@ -49,9 +49,7 @@ jobs:
         run: npm ci
 
       - name: Build and package
-        run: npm run package
-        env:
-          ELECTRON_BUILDER_SKIP_PUBLISH: true
+        run: npx electron-vite build && npx electron-builder --publish never
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
