@@ -24,6 +24,7 @@
     "@capacitor/local-notifications": "^8.2.0",
     "@capacitor/preferences": "^8.0.1",
     "@capacitor/share": "^8.0.1",
+    "@capacitor/status-bar": "^8.0.2",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "electron-store": "^8.2.0",
     "node-schedule": "^2.1.1"

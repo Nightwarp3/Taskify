@@ -5,6 +5,7 @@
  */
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem'
 import { Share } from '@capacitor/share'
+import { StatusBar } from '@capacitor/status-bar'
 import type { TaskifyAPI } from '../../preload'
 import {
   initStorage,
@@ -51,6 +52,13 @@ function emit(channel: string, ...args: unknown[]): void {
 export async function installBridge(): Promise<void> {
   // Storage is critical — let this throw if it fails
   await initStorage()
+
+  // Prevent WebView from drawing under the Android status bar
+  try {
+    await StatusBar.setOverlaysWebView({ overlay: false })
+  } catch (e) {
+    console.warn('[Taskify] StatusBar config failed:', e)
+  }
 
   // Notification setup is best-effort; don't block app launch if permissions
   // haven't been granted yet or the plugin isn't ready
