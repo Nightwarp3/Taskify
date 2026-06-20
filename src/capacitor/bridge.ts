@@ -96,8 +96,7 @@ export async function installBridge(): Promise<void> {
           const task = await taskQueries.add(title, date ?? today, {
             estimatedMinutes, scheduledTime, projectId, tags, templateId: tmpl.id
           })
-          if (task.scheduledTime) await scheduleTaskAlarm(task)
-          await rescheduleCheckIns()
+          try { if (task.scheduledTime) await scheduleTaskAlarm(task); await rescheduleCheckIns() } catch {}
           return task
         }
 
@@ -105,8 +104,7 @@ export async function installBridge(): Promise<void> {
           estimatedMinutes, scheduledTime, projectId, tags, backlog, templateId
         })
         if (!backlog) {
-          if (task.scheduledTime) await scheduleTaskAlarm(task)
-          await rescheduleCheckIns()
+          try { if (task.scheduledTime) await scheduleTaskAlarm(task); await rescheduleCheckIns() } catch {}
         }
         return task
       },
@@ -120,29 +118,30 @@ export async function installBridge(): Promise<void> {
           tags: tags !== undefined ? JSON.stringify(tags) : undefined
         })
         if (updated) {
-          await cancelTaskAlarm(id)
-          if (updated.scheduledTime && !updated.completed) await scheduleTaskAlarm(updated)
-          await rescheduleCheckIns()
+          try {
+            await cancelTaskAlarm(id)
+            if (updated.scheduledTime && !updated.completed) await scheduleTaskAlarm(updated)
+            await rescheduleCheckIns()
+          } catch {}
         }
         return updated
       },
 
       delete: async (id) => {
-        await cancelTaskAlarm(id)
+        try { await cancelTaskAlarm(id) } catch {}
         await taskQueries.delete(id)
-        await rescheduleCheckIns()
+        try { await rescheduleCheckIns() } catch {}
       },
 
       reorder: async (payload: TaskReorderPayload) => {
         await taskQueries.reorder(payload.date, payload.orderedIds)
-        await rescheduleCheckIns()
+        try { await rescheduleCheckIns() } catch {}
       },
 
       pullToToday: async (id) => {
         const today = localDateString()
         const task = await taskQueries.pullToToday(id, today)
-        if (task?.scheduledTime) await scheduleTaskAlarm(task)
-        await rescheduleCheckIns()
+        try { if (task?.scheduledTime) await scheduleTaskAlarm(task); await rescheduleCheckIns() } catch {}
         return task
       }
     },
@@ -181,10 +180,15 @@ export async function installBridge(): Promise<void> {
       get: () => settingsQueries.get(),
       set: async (key, value) => {
         await settingsQueries.set(key, value)
-        // Reschedule EOD if time settings changed
+        // Reschedule EOD if time settings changed — best-effort, may fail if
+        // notification permission hasn't been granted yet (e.g. during wizard)
         if (key === 'endOfDayTime' || key === 'startOfDayTime') {
-          const s = await settingsQueries.get()
-          await scheduleEndOfDay(s)
+          try {
+            const s = await settingsQueries.get()
+            await scheduleEndOfDay(s)
+          } catch (e) {
+            console.warn('[Taskify] scheduleEndOfDay deferred (no permission yet):', e)
+          }
         }
       }
     },
