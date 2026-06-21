@@ -6,6 +6,8 @@
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem'
 import { Share } from '@capacitor/share'
 import { StatusBar, Style } from '@capacitor/status-bar'
+import { EdgeToEdge } from '@capawesome/capacitor-android-edge-to-edge-support'
+import { NavigationBar } from '@capgo/capacitor-navigation-bar'
 import type { TaskifyAPI } from '../../preload'
 import {
   initStorage,
@@ -49,18 +51,29 @@ function emit(channel: string, ...args: unknown[]): void {
   listeners.get(channel)?.forEach((fn) => fn(...args))
 }
 
-function themeToStatusBarStyle(theme: string | undefined): Style {
-  return theme === 'light' ? Style.Light : Style.Dark
+// Colors match the CSS custom properties in index.css
+const BAR_COLORS = {
+  dark:  { status: '#1E1E1E', nav: '#121212' },
+  light: { status: '#FFFFFF', nav: '#F3F4F6' },
+}
+
+async function syncSystemBars(theme: string | undefined): Promise<void> {
+  const isDark = theme !== 'light'
+  const c = isDark ? BAR_COLORS.dark : BAR_COLORS.light
+  try { await EdgeToEdge.setStatusBarColor({ color: c.status }) } catch {}
+  try { await EdgeToEdge.setNavigationBarColor({ color: c.nav }) } catch {}
+  try { await StatusBar.setStyle({ style: isDark ? Style.Light : Style.Dark }) } catch {}
+  try { await NavigationBar.setNavigationBarColor({ color: c.nav, style: isDark ? 'DARK' : 'LIGHT' }) } catch {}
 }
 
 export async function installBridge(): Promise<void> {
   // Storage is critical — let this throw if it fails
   await initStorage()
 
-  // Set initial status bar icon style to match the saved theme
+  // Sync status bar and navigation bar colors/styles to the saved theme
   try {
     const s = await settingsQueries.get()
-    await StatusBar.setStyle({ style: themeToStatusBarStyle(s.theme) })
+    await syncSystemBars(s.theme)
   } catch {}
 
   // Notification setup is best-effort; don't block app launch if permissions
@@ -192,7 +205,7 @@ export async function installBridge(): Promise<void> {
       set: async (key, value) => {
         await settingsQueries.set(key, value)
         if (key === 'theme') {
-          try { await StatusBar.setStyle({ style: themeToStatusBarStyle(value as string) }) } catch {}
+          await syncSystemBars(value as string)
         }
         // Reschedule EOD if time settings changed — best-effort, may fail if
         // notification permission hasn't been granted yet (e.g. during wizard)
