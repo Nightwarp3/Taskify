@@ -47,4 +47,4 @@ jobs:
         run: npm ci
 
       - name: Build with EAS
-        run: eas build --platform ${{ github.event.inputs.platform || 'android' }} --profile production --non-interactive --no-wait
+        run: eas build --platform ${{ github.event.inputs.platform || 'android' }} --profile development --non-interactive --no-wait
