@@ -1,0 +1,50 @@
+name: Build and Release Mobile (EAS)
+
+# Replaces the old Capacitor release-android / release-ios workflows.
+# Builds the Expo app under mobile/ with EAS Build, which handles native
+# project generation and signing via EAS credentials.
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: Platform to build
+        required: true
+        default: android
+        type: choice
+        options:
+          - android
+          - ios
+          - all
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    environment: Release
+    defaults:
+      run:
+        working-directory: mobile
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Set up EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build with EAS
+        run: eas build --platform ${{ github.event.inputs.platform || 'android' }} --profile production --non-interactive --no-wait

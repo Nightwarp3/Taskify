@@ -13,6 +13,17 @@ npm run test:e2e     # Build then run Playwright E2E tests (tests/e2e/)
 npm run test         # Both unit + E2E
 ```
 
+The mobile app lives in its own Expo project under `mobile/` (separate `package.json` / Metro toolchain):
+
+```bash
+cd mobile
+npm install
+npm run android      # Build & launch the native Android app (expo run:android)
+npm run ios          # Build & launch the native iOS app (expo run:ios)
+npm start            # Start the Metro dev server
+npm test             # Vitest unit tests for the mobile storage logic
+```
+
 ## Architecture
 
 Taskify is a three-process Electron app:
@@ -33,7 +44,15 @@ Taskify is a three-process Electron app:
 
 **Preload** (`src/preload/index.ts`) — Exposes `window.taskify` API to renderer via `contextBridge`. The renderer's `src/env.d.ts` declares the types for this API.
 
-**Shared types** (`src/shared/types.ts`) — `Task`, `Project`, `RecurringTemplate`, and other interfaces used across all processes.
+**Shared types** (`src/shared/types.ts`) — `Task`, `Project`, `RecurringTemplate`, and other interfaces used across all processes **and the mobile app**.
+
+**Mobile app** (`mobile/`) — A native **React Native (Expo)** app, replacing the former Capacitor WebView wrapper. It does not reuse the renderer's DOM/Tailwind UI; instead it reimplements the screens with RN primitives styled via **NativeWind** (same semantic color tokens, see `mobile/global.css` + `mobile/tailwind.config.js`). It reuses the canonical data model by importing `src/shared/types.ts` through the `@shared` alias (Metro `watchFolders` + babel `module-resolver`).
+- `mobile/src/lib/storage.ts` — async port of `db.ts`, backed by `@react-native-async-storage/async-storage`
+- `mobile/src/lib/notifications.ts` — port of `scheduler.ts`, backed by `expo-notifications`
+- `mobile/src/lib/files.ts` — export/import via `expo-file-system` / `expo-sharing` / `expo-document-picker`
+- `mobile/src/lib/api.ts` — assembles the same `TaskifyAPI` shape the desktop exposes via `window.taskify`; provided to screens through `TaskifyProvider` (context) instead of a contextBridge global
+- `mobile/src/screens/`, `mobile/src/components/` — RN screens/components mirroring the renderer's views/components
+- MCP server is desktop-only and intentionally absent on mobile
 
 ### Data flow
 
@@ -57,7 +76,11 @@ TypeScript is split into `tsconfig.node.json` (main/preload, Node target) and `t
 
 ### Theming
 
-Colors are CSS custom properties defined in `src/renderer/src/index.css` and mapped in `tailwind.config.js`. Dark/light mode is toggled via a class on `<html>`; always use Tailwind tokens rather than hardcoded colors.
+Colors are CSS custom properties defined in `src/renderer/src/index.css` and mapped in `tailwind.config.js`. Dark/light mode is toggled via a class on `<html>`; always use Tailwind tokens rather than hardcoded colors. The mobile app mirrors the same tokens in `mobile/global.css` / `mobile/tailwind.config.js` (NativeWind), toggling the `.dark` class via `setColorScheme`; keep the two token sets in sync when changing the palette.
+
+### Mobile release
+
+`mobile/eas.json` defines EAS Build profiles; `.github/workflows/release-mobile.yml` runs `eas build` on `v*.*.*` tags (replacing the old Capacitor `release-android.yml` / `release-ios.yml`). Requires the `EXPO_TOKEN` secret.
 
 ## Key reference docs
 

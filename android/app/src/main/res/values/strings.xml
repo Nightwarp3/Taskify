@@ -1,7 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<resources>
-    <string name="app_name">Taskify</string>
-    <string name="title_activity_main">Taskify</string>
-    <string name="package_name">com.nightwarp.taskify</string>
-    <string name="custom_url_scheme">com.nightwarp.taskify</string>
-</resources>

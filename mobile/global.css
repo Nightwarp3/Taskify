@@ -1,0 +1,48 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Semantic color tokens — RGB channel triplets mirroring src/renderer/src/index.css.
+   Light values live on :root; the `.dark` class (toggled via NativeWind's
+   setColorScheme) swaps in the dark palette. */
+:root {
+  --c-canvas: 243 244 246;
+  --c-raised: 255 255 255;
+  --c-well: 235 237 240;
+  --c-hover: 232 234 237;
+
+  --c-rim: 209 213 219;
+  --c-rim-focus: 41 121 255;
+
+  --c-ink: 28 27 31;
+  --c-muted: 95 99 104;
+  --c-ghost: 154 160 166;
+
+  --c-accent: 41 121 255;
+  --c-accent-soft: 130 177 255;
+  --c-accent-container: 232 240 254;
+  --c-on-accent: 255 255 255;
+
+  --c-danger: 179 38 30;
+}
+
+.dark:root {
+  --c-canvas: 18 18 18;
+  --c-raised: 30 30 30;
+  --c-well: 42 42 42;
+  --c-hover: 46 46 46;
+
+  --c-rim: 58 58 58;
+  --c-rim-focus: 41 121 255;
+
+  --c-ink: 227 227 227;
+  --c-muted: 174 174 178;
+  --c-ghost: 110 110 115;
+
+  --c-accent: 41 121 255;
+  --c-accent-soft: 130 177 255;
+  --c-accent-container: 26 46 80;
+  --c-on-accent: 255 255 255;
+
+  --c-danger: 242 184 181;
+}
