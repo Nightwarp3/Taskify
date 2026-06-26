@@ -3,7 +3,7 @@ import { useState, useMemo } from 'react'
 import { View, Text, Pressable } from 'react-native'
 import DraggableFlatList, { type RenderItemParams } from 'react-native-draggable-flatlist'
 import type { Task } from '@shared/types'
-import { useTasks, useOverdueTasks } from '../hooks/useTasks'
+import { useTasks, useWeekHistoryTasks } from '../hooks/useTasks'
 import { localDateString, formatLongDate, parseJsonArray } from '../lib/format'
 import TaskItem from '../components/TaskItem'
 import { DoneDivider } from '../components/TaskList'
@@ -13,8 +13,13 @@ import AddTaskModal from '../components/AddTaskModal'
 const today = localDateString()
 
 export default function TodayScreen({ onNavigateToTemplate }: { onNavigateToTemplate?: (id: number) => void }) {
-  const { tasks, loading, addTask, updateTask, deleteTask, reorderTasks } = useTasks(today)
-  const { groups, updateTask: updateOverdue, deleteTask: deleteOverdue } = useOverdueTasks(today)
+  const { tasks, loading, addTask, updateTask, deleteTask, reorderTasks, reload } = useTasks(today)
+  const {
+    groups: historyGroups,
+    updateTask: updateHistory,
+    deleteTask: deleteHistory,
+    pullToToday
+  } = useWeekHistoryTasks(today)
   const [activeFilter, setActiveFilter] = useState<string | null>(null)
   const [showModal, setShowModal] = useState(false)
 
@@ -36,6 +41,10 @@ export default function TodayScreen({ onNavigateToTemplate }: { onNavigateToTemp
   const handleToggle = (id: number, completed: boolean) => updateTask({ id, completed })
   const handleUpdate = (id: number, fields: { title?: string; notes?: string; links?: string[]; tags?: string[] }) =>
     updateTask({ id, ...fields })
+  const handlePullToToday = async (id: number) => {
+    await pullToToday(id)
+    await reload()
+  }
 
   const onDragEnd = ({ data }: { data: Task[] }) => {
     reorderTasks([...data.map((t) => t.id), ...complete.map((t) => t.id)])
@@ -96,19 +105,20 @@ export default function TodayScreen({ onNavigateToTemplate }: { onNavigateToTemp
           ))}
         </View>
       )}
-      {tasks.length === 0 && groups.length === 0 && !loading && (
+      {tasks.length === 0 && historyGroups.length === 0 && !loading && (
         <View className="items-center justify-center h-32 gap-2">
           <Text className="text-ghost text-sm">No tasks today</Text>
           <Text className="text-ghost/60 text-xs">Tap + to add one</Text>
         </View>
       )}
-      {groups.length > 0 && (
+      {historyGroups.length > 0 && (
         <View className="mt-2">
           <OverdueTasks
-            groups={groups}
-            onToggle={(id, completed) => updateOverdue({ id, completed })}
-            onUpdate={(id, fields) => updateOverdue({ id, ...fields })}
-            onDelete={deleteOverdue}
+            groups={historyGroups}
+            onToggle={(id, completed) => updateHistory({ id, completed })}
+            onUpdate={(id, fields) => updateHistory({ id, ...fields })}
+            onDelete={deleteHistory}
+            onPullToToday={handlePullToToday}
           />
         </View>
       )}

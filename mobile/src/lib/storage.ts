@@ -10,6 +10,7 @@ import type {
   CheckIn,
   AppSettings,
   OverdueDateGroup,
+  TaskDateGroup,
   Project,
   RecurringTemplate,
   RecurrenceSchedule,
@@ -102,6 +103,14 @@ async function flush(...keys: (keyof StoreData)[]): Promise<void> {
 
 function toTask(s: StoredTask): Task { return { ...s } }
 
+function weekStart(date: string): string {
+  const d = new Date(date + 'T00:00:00')
+  const day = d.getDay()
+  const offset = day === 0 ? -6 : 1 - day
+  d.setDate(d.getDate() + offset)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 export function isScheduledOn(schedule: RecurrenceSchedule, date: string): boolean {
   const d = new Date(date + 'T00:00:00')
   const dow = d.getDay()
@@ -134,6 +143,20 @@ export const taskQueries = {
         .filter((t) => t && !t.completed && !t.backlog)
         .map(toTask)
       if (incomplete.length > 0) groups.push({ date, tasks: incomplete })
+    }
+    return groups.sort((a, b) => b.date.localeCompare(a.date))
+  },
+
+  async listWeekHistory(today: string): Promise<TaskDateGroup[]> {
+    const start = weekStart(today)
+    const groups: TaskDateGroup[] = []
+    for (const [date, ids] of Object.entries(cache.tasksByDate)) {
+      if (date < start || date >= today) continue
+      const dayTasks = (ids as number[])
+        .map((id) => cache.tasks[id])
+        .filter((t) => t && !t.backlog)
+        .map(toTask)
+      if (dayTasks.length > 0) groups.push({ date, tasks: dayTasks })
     }
     return groups.sort((a, b) => b.date.localeCompare(a.date))
   },

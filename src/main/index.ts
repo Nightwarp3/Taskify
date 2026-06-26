@@ -137,6 +137,11 @@ function handleMcpBridgeRequest(req: { id: string; type: string; payload: unknow
         respond(taskQueries.listOverdue(localDateString()))
         break
       }
+      case 'tasks:listWeekHistory': {
+        const { taskQueries } = require('./db')
+        respond(taskQueries.listWeekHistory(localDateString()))
+        break
+      }
       case 'tasks:listByProject': {
         const { taskQueries } = require('./db')
         respond(taskQueries.listByProject(p.projectId as number))

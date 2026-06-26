@@ -84,3 +84,36 @@ describe('generateDueTasks', () => {
     expect(again).toHaveLength(0)
   })
 })
+
+describe('taskQueries history and carry-over', () => {
+  it('lists earlier current-week tasks including completed tasks', async () => {
+    await storage.taskQueries.add('Monday', '2026-06-15')
+    const done = await storage.taskQueries.add('Thursday done', '2026-06-18')
+    await storage.taskQueries.update(done.id, { completed: true })
+
+    const groups = await storage.taskQueries.listWeekHistory('2026-06-19')
+
+    expect(groups.map((g) => g.date)).toEqual(['2026-06-18', '2026-06-15'])
+    expect(groups[0].tasks[0].title).toBe('Thursday done')
+    expect(groups[0].tasks[0].completed).toBe(true)
+  })
+
+  it('excludes today, future, previous-week, and backlog tasks from week history', async () => {
+    await storage.taskQueries.add('Previous week', '2026-06-12')
+    await storage.taskQueries.add('Today', '2026-06-19')
+    await storage.taskQueries.add('Future', '2026-06-20')
+    await storage.taskQueries.add('Backlog', '2026-06-18', { backlog: true, projectId: 1 })
+
+    expect(await storage.taskQueries.listWeekHistory('2026-06-19')).toEqual([])
+  })
+
+  it('moves a dated task to today and removes it from the old date order', async () => {
+    const task = await storage.taskQueries.add('Carry over', '2026-06-18')
+
+    await storage.taskQueries.pullToToday(task.id, '2026-06-19')
+
+    expect(await storage.taskQueries.listByDate('2026-06-18')).toHaveLength(0)
+    expect((await storage.taskQueries.listByDate('2026-06-19')).map((t) => t.id)).toEqual([task.id])
+    expect((await storage.taskQueries.getById(task.id))?.date).toBe('2026-06-19')
+  })
+})

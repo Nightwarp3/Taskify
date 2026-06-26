@@ -10,13 +10,15 @@ interface Props {
   onToggle: (id: number, completed: boolean) => void
   onUpdate: (id: number, fields: { title?: string; notes?: string; links?: string[]; tags?: string[] }) => void
   onDelete: (id: number) => void
+  onPullToToday?: (id: number) => void
 }
 
-function OverdueGroup({ group, onToggle, onUpdate, onDelete }: {
+function OverdueGroup({ group, onToggle, onUpdate, onDelete, onPullToToday }: {
   group: OverdueDateGroup
   onToggle: Props['onToggle']
   onUpdate: Props['onUpdate']
   onDelete: Props['onDelete']
+  onPullToToday?: Props['onPullToToday']
 }) {
   const [open, setOpen] = useState(false)
   return (
@@ -32,7 +34,14 @@ function OverdueGroup({ group, onToggle, onUpdate, onDelete }: {
       {open && (
         <View className="border-t border-rim bg-canvas">
           {group.tasks.map((task) => (
-            <TaskItem key={task.id} task={task} onToggle={onToggle} onUpdate={onUpdate} onDelete={onDelete} />
+            <View key={task.id}>
+              <TaskItem task={task} onToggle={onToggle} onUpdate={onUpdate} onDelete={onDelete} />
+              {!task.completed && onPullToToday && (
+                <Pressable onPress={() => onPullToToday(task.id)} className="pl-10 pr-3 pb-2 -mt-1">
+                  <Text className="text-xs font-medium text-accent">Move to today</Text>
+                </Pressable>
+              )}
+            </View>
           ))}
         </View>
       )}
@@ -40,19 +49,26 @@ function OverdueGroup({ group, onToggle, onUpdate, onDelete }: {
   )
 }
 
-export default function OverdueTasks({ groups, onToggle, onUpdate, onDelete }: Props) {
+export default function OverdueTasks({ groups, onToggle, onUpdate, onDelete, onPullToToday }: Props) {
   if (groups.length === 0) return null
   const totalCount = groups.reduce((sum, g) => sum + g.tasks.length, 0)
   return (
     <View className="px-4 pb-2">
       <View className="flex-row items-center gap-2 mb-2 mt-1">
-        <Text className="text-xs font-semibold text-danger uppercase tracking-wider">Carry-over</Text>
-        <View className="bg-danger/10 px-1.5 py-0.5 rounded-pill">
-          <Text className="text-xs text-danger font-medium">{totalCount}</Text>
+        <Text className="text-xs font-semibold text-muted uppercase tracking-wider">This week</Text>
+        <View className="bg-well px-1.5 py-0.5 rounded-pill">
+          <Text className="text-xs text-muted font-medium">{totalCount}</Text>
         </View>
       </View>
       {groups.map((g) => (
-        <OverdueGroup key={g.date} group={g} onToggle={onToggle} onUpdate={onUpdate} onDelete={onDelete} />
+        <OverdueGroup
+          key={g.date}
+          group={g}
+          onToggle={onToggle}
+          onUpdate={onUpdate}
+          onDelete={onDelete}
+          onPullToToday={onPullToToday}
+        />
       ))}
     </View>
   )

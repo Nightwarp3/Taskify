@@ -80,11 +80,12 @@ export function TaskifyProvider({ children }: { children: React.ReactNode }) {
     const sub = AppState.addEventListener('change', (next) => {
       if (appState.current.match(/inactive|background/) && next === 'active') {
         regenerateOnResume()
+        syncSystemBars(theme)
       }
       appState.current = next
     })
     return () => sub.remove()
-  }, [])
+  }, [theme])
 
   const setTheme = (t: Theme) => {
     setThemeState(t)
