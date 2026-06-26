@@ -6,6 +6,7 @@ import SettingsView from './views/SettingsView'
 import ProjectsView from './views/ProjectsView'
 import RecurringView from './views/RecurringView'
 import WizardModal from './components/WizardModal'
+import type { UpdateState } from '../../shared/types'
 
 function localDateString(): string {
   const d = new Date()
@@ -28,6 +29,7 @@ export default function App() {
   const [theme, setTheme] = useState<'light' | 'dark'>('dark')
   const [showWizard, setShowWizard] = useState(false)
   const [cogOpen, setCogOpen] = useState(false)
+  const [updateState, setUpdateState] = useState<UpdateState | null>(null)
   const cogRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -35,6 +37,11 @@ export default function App() {
       setTheme(s.theme ?? 'dark')
       if (!s.wizardCompleted) setShowWizard(true)
     })
+    window.taskify.updates.getState().then(setUpdateState)
+    const off = window.taskify.on('updates:state', (value) => {
+      setUpdateState(value as UpdateState)
+    })
+    return off
   }, [])
 
   useEffect(() => {
@@ -161,6 +168,23 @@ export default function App() {
           onThemeChange={setTheme}
           currentTheme={theme}
         />
+      )}
+
+      {updateState?.status === 'downloaded' && (
+        <div className="fixed left-4 right-4 bottom-4 z-50 flex items-center justify-between gap-3 rounded-lg border border-rim bg-raised px-3 py-2 shadow-elev-1">
+          <div>
+            <div className="text-sm font-medium text-ink">Update ready</div>
+            <div className="text-xs text-ghost">
+              {updateState.message ?? 'Restart Taskify to install the latest version.'}
+            </div>
+          </div>
+          <button
+            onClick={() => window.taskify.updates.installNow()}
+            className="shrink-0 rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-on-accent hover:opacity-90 transition-opacity"
+          >
+            Restart
+          </button>
+        </div>
       )}
     </div>
   )

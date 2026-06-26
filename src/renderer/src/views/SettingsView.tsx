@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import type { AppSettings } from '../../../shared/types'
+import type { AppSettings, UpdateState } from '../../../shared/types'
 
 interface Props {
   onThemeChange: (theme: 'light' | 'dark') => void
@@ -16,9 +16,15 @@ export default function SettingsView({ onThemeChange, onReopenWizard }: Props) {
   const [includeSettings, setIncludeSettings] = useState(false)
   const [importStatus, setImportStatus] = useState<string | null>(null)
   const [mcpUrlCopied, setMcpUrlCopied] = useState(false)
+  const [updateState, setUpdateState] = useState<UpdateState | null>(null)
 
   useEffect(() => {
     window.taskify.settings.get().then(setSettings)
+    window.taskify.updates.getState().then(setUpdateState)
+    const off = window.taskify.on('updates:state', (value) => {
+      setUpdateState(value as UpdateState)
+    })
+    return off
   }, [])
 
   const update = async <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => {
@@ -60,6 +66,18 @@ export default function SettingsView({ onThemeChange, onReopenWizard }: Props) {
     setSettings((prev) => (prev ? { ...prev, wizardCompleted: false } : prev))
     onReopenWizard()
   }
+
+  const checkForUpdates = async () => {
+    const result = await window.taskify.updates.checkNow()
+    setUpdateState(result)
+  }
+
+  const installUpdate = async () => {
+    await window.taskify.updates.installNow()
+  }
+
+  const updateMessage = updateState?.message ?? 'Updates are checked automatically when the packaged app starts.'
+  const updateBusy = updateState?.status === 'checking' || updateState?.status === 'downloading'
 
   if (!settings) return <div className="p-4 text-sm text-ghost">Loading…</div>
 
@@ -133,6 +151,48 @@ export default function SettingsView({ onThemeChange, onReopenWizard }: Props) {
           </div>
         </Field>
       </div>
+
+      {/* Updates */}
+      {import.meta.env.VITE_PLATFORM !== 'capacitor' && (
+        <div className="bg-raised rounded-lg border border-rim p-3 shadow-elev-1">
+          <div className="text-xs font-semibold text-muted uppercase tracking-wider mb-3">Updates</div>
+          <div className="space-y-3">
+            <Field label="Current version" hint={updateMessage}>
+              <span className="text-xs font-medium text-ink">
+                v{updateState?.currentVersion ?? '...'}
+              </span>
+            </Field>
+
+            {updateState?.progress != null && updateState.status === 'downloading' && (
+              <div className="h-1.5 overflow-hidden rounded-full bg-well">
+                <div
+                  className="h-full rounded-full bg-accent transition-all"
+                  style={{ width: `${Math.max(0, Math.min(100, updateState.progress))}%` }}
+                />
+              </div>
+            )}
+
+            <div className="flex gap-2">
+              <button
+                onClick={checkForUpdates}
+                disabled={updateBusy || updateState?.status === 'disabled'}
+                className="text-xs px-3 py-1.5 bg-well hover:bg-hover disabled:opacity-50 disabled:hover:bg-well border border-rim rounded-md font-medium text-ink transition-colors"
+              >
+                {updateBusy ? 'Checking...' : 'Check for updates'}
+              </button>
+
+              {updateState?.status === 'downloaded' && (
+                <button
+                  onClick={installUpdate}
+                  className="text-xs px-3 py-1.5 bg-accent hover:opacity-90 rounded-md font-medium text-on-accent transition-opacity"
+                >
+                  Restart to update
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Data — Import / Export */}
       <div className="bg-raised rounded-lg border border-rim p-3 shadow-elev-1">
@@ -262,7 +322,7 @@ export default function SettingsView({ onThemeChange, onReopenWizard }: Props) {
         >
           Rerun setup wizard
         </button>
-        <div className="text-xs text-ghost">v0.1.0</div>
+        <div className="text-xs text-ghost">v{updateState?.currentVersion ?? '...'}</div>
       </div>
     </div>
   )

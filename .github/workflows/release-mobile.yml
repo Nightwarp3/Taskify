@@ -5,9 +5,6 @@ name: Build and Release Mobile (EAS)
 # project generation and signing via EAS credentials.
 
 on:
-  push:
-    tags:
-      - 'v*.*.*'
   workflow_dispatch:
     inputs:
       platform:

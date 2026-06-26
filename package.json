@@ -15,6 +15,7 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
     "electron-store": "^8.2.0",
+    "electron-updater": "^6.8.9",
     "node-schedule": "^2.1.1"
   },
   "devDependencies": {
@@ -49,6 +50,12 @@
     "productName": "Taskify",
     "directories": {
       "output": "release"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "Nightwarp3",
+      "repo": "Taskify",
+      "releaseType": "release"
     },
     "win": {
       "target": "nsis",

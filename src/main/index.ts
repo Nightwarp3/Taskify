@@ -10,6 +10,7 @@ import { is } from '@electron-toolkit/utils'
 import { registerIpcHandlers } from './ipc'
 import { scheduleEndOfDay, rescheduleCheckIns, scheduleTaskAlarm } from './scheduler'
 import { templateQueries, settingsQueries, taskQueries } from './db'
+import { setupUpdates, checkForUpdates } from './updater'
 
 let win: BrowserWindow | null = null
 let tray: Tray | null = null
@@ -263,11 +264,13 @@ function createTray(): void {
 app.whenReady().then(() => {
   registerIpcHandlers(() => win)
   createWindow()
+  setupUpdates(() => win)
   createTray()
   scheduleEndOfDay(() => win)
   generateTemplatesNow()
   scheduleAlarmsForToday()
   startMcpServer()
+  setTimeout(() => { void checkForUpdates() }, 5000)
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()

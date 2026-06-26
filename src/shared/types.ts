@@ -84,6 +84,24 @@ export interface ImportResult {
   templates: number
 }
 
+export type UpdateStatus =
+  | 'idle'
+  | 'checking'
+  | 'available'
+  | 'not-available'
+  | 'downloading'
+  | 'downloaded'
+  | 'error'
+  | 'disabled'
+
+export interface UpdateState {
+  status: UpdateStatus
+  currentVersion: string
+  availableVersion: string | null
+  message: string | null
+  progress: number | null
+}
+
 export type IpcChannel =
   | 'tasks:list'
   | 'tasks:add'
@@ -113,6 +131,9 @@ export type IpcChannel =
   | 'settings:set'
   | 'checkins:schedule'
   | 'checkins:cancel'
+  | 'updates:getState'
+  | 'updates:checkNow'
+  | 'updates:installNow'
   | 'app:openWindow'
 
 export interface TaskAddPayload {
