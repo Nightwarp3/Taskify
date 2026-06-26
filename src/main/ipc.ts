@@ -16,6 +16,7 @@ import {
   cancelTaskAlarm,
   scheduleEndOfDay
 } from './scheduler'
+import { getUpdateState, checkForUpdates, installUpdate } from './updater'
 import type {
   TaskAddPayload,
   TaskUpdatePayload,
@@ -262,5 +263,18 @@ export function registerIpcHandlers(getWindow: () => BrowserWindow | null): void
     cancelCheckIns(taskId)
     rescheduleCheckIns(getWindow())
     return { ok: true }
+  })
+
+  // ── Updates ──────────────────────────────────────────────────────────────
+  ipcMain.handle('updates:getState', () => {
+    return getUpdateState()
+  })
+
+  ipcMain.handle('updates:checkNow', () => {
+    return checkForUpdates()
+  })
+
+  ipcMain.handle('updates:installNow', () => {
+    return installUpdate()
   })
 }

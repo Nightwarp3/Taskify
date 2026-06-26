@@ -13,7 +13,8 @@ import type {
   RecurringTemplate,
   TemplateAddPayload,
   TemplateUpdatePayload,
-  ImportResult
+  ImportResult,
+  UpdateState
 } from '../shared/types'
 
 const api = {
@@ -81,6 +82,14 @@ const api = {
   wizard: {
     requestNotificationPermission: (): Promise<{ granted: boolean }> =>
       ipcRenderer.invoke('wizard:requestNotificationPermission')
+  },
+  updates: {
+    getState: (): Promise<UpdateState> =>
+      ipcRenderer.invoke('updates:getState'),
+    checkNow: (): Promise<UpdateState> =>
+      ipcRenderer.invoke('updates:checkNow'),
+    installNow: (): Promise<UpdateState> =>
+      ipcRenderer.invoke('updates:installNow')
   },
   on: (channel: string, fn: (...args: unknown[]) => void) => {
     const listener = (_: Electron.IpcRendererEvent, ...args: unknown[]) => fn(...args)
