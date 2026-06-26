@@ -4,6 +4,7 @@ import type {
   CheckIn,
   AppSettings,
   OverdueDateGroup,
+  TaskDateGroup,
   Project,
   RecurringTemplate,
   RecurrenceSchedule,
@@ -77,6 +78,14 @@ function toTask(s: StoredTask): Task {
   return { ...s }
 }
 
+function weekStart(date: string): string {
+  const d = new Date(date + 'T00:00:00')
+  const day = d.getDay()
+  const offset = day === 0 ? -6 : 1 - day
+  d.setDate(d.getDate() + offset)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 export const taskQueries = {
   listByDate(date: string): Task[] {
     const order: number[] = store.get(`tasksByDate.${date}` as never, [] as never) as number[]
@@ -101,6 +110,24 @@ export const taskQueries = {
       if (incompleteTasks.length > 0) {
         groups.push({ date, tasks: incompleteTasks })
       }
+    }
+
+    return groups.sort((a, b) => b.date.localeCompare(a.date))
+  },
+
+  listWeekHistory(today: string): TaskDateGroup[] {
+    const start = weekStart(today)
+    const tasksByDate = store.get('tasksByDate')
+    const tasks = store.get('tasks')
+    const groups: TaskDateGroup[] = []
+
+    for (const [date, ids] of Object.entries(tasksByDate)) {
+      if (date < start || date >= today) continue
+      const dayTasks = (ids as number[])
+        .map((id) => tasks[id])
+        .filter((t) => t && !t.backlog)
+        .map(toTask)
+      if (dayTasks.length > 0) groups.push({ date, tasks: dayTasks })
     }
 
     return groups.sort((a, b) => b.date.localeCompare(a.date))
@@ -204,8 +231,14 @@ export const taskQueries = {
     const existing = store.get('tasks')[id]
     if (!existing) return null
 
+    if (!existing.backlog) {
+      const oldOrder: number[] = store.get(`tasksByDate.${existing.date}` as never, [] as never) as number[]
+      store.set(`tasksByDate.${existing.date}` as never, oldOrder.filter((i) => i !== id) as never)
+    }
+
     const updated: StoredTask = { ...existing, backlog: false, date: today }
-    const order: number[] = store.get(`tasksByDate.${today}` as never, [] as never) as number[]
+    const order = (store.get(`tasksByDate.${today}` as never, [] as never) as number[])
+      .filter((i) => i !== id)
     updated.sortOrder = order.length
     store.set(`tasks.${id}` as never, updated as never)
     store.set(`tasksByDate.${today}` as never, [...order, id] as never)
@@ -458,6 +491,26 @@ export const checkInQueries = {
 
   snooze(id: number, until: string): void {
     store.set(`checkIns.${id}.snoozedUntil` as never, until as never)
+  },
+
+  removePendingForTask(taskId: number): void {
+    const all = store.get('checkIns')
+    for (const [id, ci] of Object.entries(all)) {
+      if (ci.taskId === taskId && ci.firedAt === null) {
+        delete all[Number(id)]
+      }
+    }
+    store.set('checkIns', all)
+  },
+
+  removeAllPending(): void {
+    const all = store.get('checkIns')
+    for (const [id, ci] of Object.entries(all)) {
+      if (ci.firedAt === null) {
+        delete all[Number(id)]
+      }
+    }
+    store.set('checkIns', all)
   },
 
   pendingForTask(taskId: number): CheckIn[] {

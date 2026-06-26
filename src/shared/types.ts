@@ -61,10 +61,12 @@ export interface AppSettings {
   mcpEnabled: boolean
 }
 
-export interface OverdueDateGroup {
+export interface TaskDateGroup {
   date: string
   tasks: Task[]
 }
+
+export type OverdueDateGroup = TaskDateGroup
 
 export interface ExportData {
   version: string
@@ -90,6 +92,7 @@ export type IpcChannel =
   | 'tasks:reorder'
   | 'tasks:listByDate'
   | 'tasks:listOverdue'
+  | 'tasks:listWeekHistory'
   | 'tasks:listByProject'
   | 'tasks:pullToToday'
   | 'projects:list'

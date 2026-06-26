@@ -84,15 +84,7 @@ export function cancelCheckIns(taskId: number): void {
       activeJobs.delete(key)
     }
   }
-  const pending = checkInQueries.pendingForTask(taskId)
-  for (const ci of pending) {
-    const key = jobKey('checkin', ci.id)
-    const job = activeJobs.get(key)
-    if (job) {
-      job.cancel()
-      activeJobs.delete(key)
-    }
-  }
+  checkInQueries.removePendingForTask(taskId)
 }
 
 // Cancel all in-memory check-in jobs (used before rescheduling)
@@ -103,6 +95,7 @@ function cancelAllCheckInJobs(): void {
       activeJobs.delete(key)
     }
   }
+  checkInQueries.removeAllPending()
 }
 
 // Reschedule check-ins so only the highest-priority incomplete task with an

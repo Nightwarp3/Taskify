@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { useTasks, useOverdueTasks } from '../hooks/useTasks'
+import { useTasks, useWeekHistoryTasks } from '../hooks/useTasks'
 import AddTaskModal from '../components/AddTaskModal'
 import TaskList from '../components/TaskList'
 import OverdueTasks from '../components/OverdueTasks'
@@ -24,8 +24,13 @@ interface Props {
 }
 
 export default function TodayView({ onNavigateToTemplate }: Props) {
-  const { tasks, loading, addTask, updateTask, deleteTask, reorderTasks } = useTasks(today)
-  const { groups, updateTask: updateOverdue, deleteTask: deleteOverdue } = useOverdueTasks(today)
+  const { tasks, loading, addTask, updateTask, deleteTask, reorderTasks, reload } = useTasks(today)
+  const {
+    groups: historyGroups,
+    updateTask: updateHistory,
+    deleteTask: deleteHistory,
+    pullToToday
+  } = useWeekHistoryTasks(today)
   const [activeFilter, setActiveFilter] = useState<string | null>(null)
   const [showModal, setShowModal] = useState(false)
 
@@ -58,9 +63,13 @@ export default function TodayView({ onNavigateToTemplate }: Props) {
   const handleToggle = (id: number, completed: boolean) => updateTask({ id, completed })
   const handleUpdate = (id: number, fields: { title?: string; notes?: string; links?: string[]; tags?: string[] }) =>
     updateTask({ id, ...fields })
-  const handleOverdueToggle = (id: number, completed: boolean) => updateOverdue({ id, completed })
-  const handleOverdueUpdate = (id: number, fields: { title?: string; notes?: string; links?: string[]; tags?: string[] }) =>
-    updateOverdue({ id, ...fields })
+  const handleHistoryToggle = (id: number, completed: boolean) => updateHistory({ id, completed })
+  const handleHistoryUpdate = (id: number, fields: { title?: string; notes?: string; links?: string[]; tags?: string[] }) =>
+    updateHistory({ id, ...fields })
+  const handlePullToToday = async (id: number) => {
+    await pullToToday(id)
+    await reload()
+  }
 
   const filteredTasks = useMemo(() => {
     if (!activeFilter) return tasks
@@ -129,7 +138,7 @@ export default function TodayView({ onNavigateToTemplate }: Props) {
           <div className="flex items-center justify-center h-24 text-ghost text-sm">Loading…</div>
         ) : (
           <>
-            {tasks.length === 0 && groups.length === 0 && (
+            {tasks.length === 0 && historyGroups.length === 0 && (
               <div className="flex flex-col items-center justify-center h-32 text-ghost text-sm gap-2">
                 <span>No tasks today</span>
                 <span className="text-xs text-ghost/60">Tap + to add one</span>
@@ -146,13 +155,14 @@ export default function TodayView({ onNavigateToTemplate }: Props) {
               />
             </div>
 
-            {groups.length > 0 && (
+            {historyGroups.length > 0 && (
               <div className="mt-2">
                 <OverdueTasks
-                  groups={groups}
-                  onToggle={handleOverdueToggle}
-                  onUpdate={handleOverdueUpdate}
-                  onDelete={deleteOverdue}
+                  groups={historyGroups}
+                  onToggle={handleHistoryToggle}
+                  onUpdate={handleHistoryUpdate}
+                  onDelete={deleteHistory}
+                  onPullToToday={handlePullToToday}
                 />
               </div>
             )}

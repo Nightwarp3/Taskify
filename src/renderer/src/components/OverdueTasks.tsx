@@ -7,6 +7,7 @@ interface Props {
   onToggle: (id: number, completed: boolean) => void
   onUpdate: (id: number, fields: { title?: string; notes?: string; links?: string[]; tags?: string[] }) => void
   onDelete: (id: number) => void
+  onPullToToday?: (id: number) => void
 }
 
 function overdueLabel(iso: string): string {
@@ -30,12 +31,14 @@ function OverdueGroup({
   group,
   onToggle,
   onUpdate,
-  onDelete
+  onDelete,
+  onPullToToday
 }: {
   group: OverdueDateGroup
   onToggle: Props['onToggle']
   onUpdate: Props['onUpdate']
   onDelete: Props['onDelete']
+  onPullToToday?: Props['onPullToToday']
 }) {
   const [open, setOpen] = useState(false)
   const count = group.tasks.length
@@ -68,13 +71,24 @@ function OverdueGroup({
       {open && (
         <div className="border-t border-rim bg-canvas">
           {group.tasks.map((task: Task) => (
-            <TaskItem
-              key={task.id}
-              task={task}
-              onToggle={onToggle}
-              onUpdate={onUpdate}
-              onDelete={onDelete}
-            />
+            <div key={task.id}>
+              <TaskItem
+                task={task}
+                onToggle={onToggle}
+                onUpdate={onUpdate}
+                onDelete={onDelete}
+              />
+              {!task.completed && onPullToToday && (
+                <div className="pl-10 pr-3 pb-2 -mt-1">
+                  <button
+                    onClick={() => onPullToToday(task.id)}
+                    className="text-xs font-medium text-accent hover:text-accent/80 transition-colors"
+                  >
+                    Move to today
+                  </button>
+                </div>
+              )}
+            </div>
           ))}
         </div>
       )}
@@ -82,7 +96,7 @@ function OverdueGroup({
   )
 }
 
-export default function OverdueTasks({ groups, onToggle, onUpdate, onDelete }: Props) {
+export default function OverdueTasks({ groups, onToggle, onUpdate, onDelete, onPullToToday }: Props) {
   if (groups.length === 0) return null
 
   const totalCount = groups.reduce((sum, g) => sum + g.tasks.length, 0)
@@ -90,10 +104,10 @@ export default function OverdueTasks({ groups, onToggle, onUpdate, onDelete }: P
   return (
     <div className="px-4 pb-2">
       <div className="flex items-center gap-2 mb-2 mt-1">
-        <span className="text-xs font-semibold text-danger uppercase tracking-wider">
-          Carry-over
+        <span className="text-xs font-semibold text-muted uppercase tracking-wider">
+          This week
         </span>
-        <span className="text-xs text-danger bg-danger/10 px-1.5 py-0.5 rounded-pill font-medium">
+        <span className="text-xs text-muted bg-well px-1.5 py-0.5 rounded-pill font-medium">
           {totalCount}
         </span>
       </div>
@@ -104,6 +118,7 @@ export default function OverdueTasks({ groups, onToggle, onUpdate, onDelete }: P
           onToggle={onToggle}
           onUpdate={onUpdate}
           onDelete={onDelete}
+          onPullToToday={onPullToToday}
         />
       ))}
     </div>

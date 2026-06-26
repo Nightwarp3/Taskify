@@ -8,6 +8,7 @@ import type {
   Task,
   AppSettings,
   OverdueDateGroup,
+  TaskDateGroup,
   Project,
   RecurringTemplate,
   ImportResult,
@@ -43,6 +44,7 @@ export interface TaskifyAPI {
   tasks: {
     listByDate(date: string): Promise<Task[]>
     listOverdue(today: string): Promise<OverdueDateGroup[]>
+    listWeekHistory(today: string): Promise<TaskDateGroup[]>
     listByProject(projectId: number): Promise<Task[]>
     add(payload: TaskAddPayload): Promise<Task>
     update(payload: TaskUpdatePayload): Promise<Task | null>
@@ -99,6 +101,7 @@ export const taskify: TaskifyAPI = {
   tasks: {
     listByDate: (date) => taskQueries.listByDate(date),
     listOverdue: (today) => taskQueries.listOverdue(today),
+    listWeekHistory: (today) => taskQueries.listWeekHistory(today),
     listByProject: (projectId) => taskQueries.listByProject(projectId),
 
     add: async (payload: TaskAddPayload) => {

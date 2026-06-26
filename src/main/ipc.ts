@@ -42,6 +42,10 @@ export function registerIpcHandlers(getWindow: () => BrowserWindow | null): void
     return taskQueries.listOverdue(today)
   })
 
+  ipcMain.handle('tasks:listWeekHistory', (_, today: string) => {
+    return taskQueries.listWeekHistory(today)
+  })
+
   ipcMain.handle('tasks:listByProject', (_, projectId: number) => {
     return taskQueries.listByProject(projectId)
   })

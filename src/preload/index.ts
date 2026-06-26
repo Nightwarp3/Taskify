@@ -3,6 +3,7 @@ import type {
   Task,
   AppSettings,
   OverdueDateGroup,
+  TaskDateGroup,
   TaskAddPayload,
   TaskUpdatePayload,
   TaskReorderPayload,
@@ -21,6 +22,8 @@ const api = {
       ipcRenderer.invoke('tasks:listByDate', date),
     listOverdue: (today: string): Promise<OverdueDateGroup[]> =>
       ipcRenderer.invoke('tasks:listOverdue', today),
+    listWeekHistory: (today: string): Promise<TaskDateGroup[]> =>
+      ipcRenderer.invoke('tasks:listWeekHistory', today),
     listByProject: (projectId: number): Promise<Task[]> =>
       ipcRenderer.invoke('tasks:listByProject', projectId),
     add: (payload: TaskAddPayload): Promise<Task> =>

@@ -3,7 +3,7 @@
  * the TaskifyAPI from context instead of the window.taskify global.
  */
 import { useState, useEffect, useCallback } from 'react'
-import type { Task, OverdueDateGroup, RecurrenceSchedule, TaskUpdatePayload } from '@shared/types'
+import type { Task, OverdueDateGroup, TaskDateGroup, RecurrenceSchedule, TaskUpdatePayload } from '@shared/types'
 import { useTaskifyApi } from '../providers/TaskifyProvider'
 
 export function useTasks(date: string) {
@@ -130,6 +130,63 @@ export function useOverdueTasks(today: string) {
         .map((g) => ({ ...g, tasks: g.tasks.filter((t) => t.id !== id) }))
         .filter((g) => g.tasks.length > 0)
     )
+  }, [api])
+
+  return { groups, updateTask, deleteTask, pullToToday, reload: load }
+}
+
+export function useWeekHistoryTasks(today: string) {
+  const api = useTaskifyApi()
+  const [groups, setGroups] = useState<TaskDateGroup[]>([])
+
+  const load = useCallback(async () => {
+    const result = await api.tasks.listWeekHistory(today)
+    setGroups(result)
+  }, [api, today])
+
+  useEffect(() => {
+    load()
+    const off = api.on('tasks:refreshed', load)
+    return off
+  }, [api, load])
+
+  const updateTask = useCallback(
+    async (payload: TaskUpdatePayload) => {
+      const updated = await api.tasks.update(payload)
+      if (updated) {
+        setGroups((prev) =>
+          prev
+            .map((g) => ({
+              ...g,
+              tasks: g.tasks.map((t) => (t.id === updated.id ? updated : t))
+            }))
+            .filter((g) => g.tasks.length > 0)
+        )
+      }
+      return updated
+    },
+    [api]
+  )
+
+  const deleteTask = useCallback(async (id: number) => {
+    await api.tasks.delete(id)
+    setGroups((prev) =>
+      prev
+        .map((g) => ({ ...g, tasks: g.tasks.filter((t) => t.id !== id) }))
+        .filter((g) => g.tasks.length > 0)
+    )
+  }, [api])
+
+  const pullToToday = useCallback(async (id: number) => {
+    const task = await api.tasks.pullToToday(id)
+    if (task) {
+      setGroups((prev) =>
+        prev
+          .map((g) => ({ ...g, tasks: g.tasks.filter((t) => t.id !== id) }))
+          .filter((g) => g.tasks.length > 0)
+      )
+    }
+    return task
   }, [api])
 
   return { groups, updateTask, deleteTask, pullToToday, reload: load }

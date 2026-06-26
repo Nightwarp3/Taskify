@@ -280,6 +280,22 @@ describe('rescheduleDate()', () => {
   })
 })
 
+describe('pullToToday()', () => {
+  it('moves a dated task to today and removes it from its old date order', () => {
+    const t = taskQueries.add('Carry over', YESTERDAY)
+    taskQueries.pullToToday(t.id, TODAY)
+    expect(taskQueries.listByDate(YESTERDAY)).toHaveLength(0)
+    expect(taskQueries.listByDate(TODAY).map((task) => task.id)).toEqual([t.id])
+    expect(taskQueries.getById(t.id)?.date).toBe(TODAY)
+  })
+
+  it('does not duplicate a task already ordered for today', () => {
+    const t = taskQueries.add('Today', TODAY)
+    taskQueries.pullToToday(t.id, TODAY)
+    expect(taskQueries.listByDate(TODAY).map((task) => task.id)).toEqual([t.id])
+  })
+})
+
 describe('listOverdue()', () => {
   it('returns incomplete tasks from dates before today', () => {
     taskQueries.add('Old incomplete', YESTERDAY)
@@ -309,6 +325,29 @@ describe('listOverdue()', () => {
     // Groups are sorted newest-first
     expect(groups[0].date).toBe(YESTERDAY)
     expect(groups[1].date).toBe('2026-06-17')
+  })
+})
+
+describe('listWeekHistory()', () => {
+  it('returns earlier current-week tasks including completed tasks', () => {
+    taskQueries.add('Monday', '2026-06-15')
+    const done = taskQueries.add('Thursday done', YESTERDAY)
+    taskQueries.update(done.id, { completed: true })
+
+    const groups = taskQueries.listWeekHistory(TODAY)
+
+    expect(groups.map((g) => g.date)).toEqual([YESTERDAY, '2026-06-15'])
+    expect(groups[0].tasks[0].title).toBe('Thursday done')
+    expect(groups[0].tasks[0].completed).toBe(true)
+  })
+
+  it('excludes today, future, previous-week, and backlog tasks', () => {
+    taskQueries.add('Previous week', '2026-06-12')
+    taskQueries.add('Today', TODAY)
+    taskQueries.add('Future', TOMORROW)
+    taskQueries.add('Backlog', YESTERDAY, { backlog: true, projectId: 1 })
+
+    expect(taskQueries.listWeekHistory(TODAY)).toEqual([])
   })
 })
 
