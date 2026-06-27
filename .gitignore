@@ -10,6 +10,7 @@ out/
 Thumbs.db
 *.log
 test-results
+*.vsix
 
 # Android build artifacts (native project committed, build output ignored)
 android/.gradle/

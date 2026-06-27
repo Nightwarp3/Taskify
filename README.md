@@ -1,154 +1,112 @@
 # Taskify
 
-A focused daily task manager for Windows. Lives in the system tray, checks in on timed tasks, and stays out of your way.
+Taskify is a focused task manager for people who plan their day in small, concrete pieces. The desktop app lives in the system tray, keeps today's work close, and can nudge you with timed check-ins when a task has an estimate.
 
----
+The repository includes:
+
+- A Windows-first Electron desktop app built with React, TypeScript, and Tailwind CSS.
+- A native Expo / React Native mobile companion app under `mobile/`.
+- An optional local MCP server so AI agents can read and update Taskify while the desktop app is running.
 
 ## Features
 
-- **Today view** — add tasks, drag to reorder, complete with one click
-- **Tags** — label tasks with `#tag` inline or via the detail panel; filter Today by tag
-- **Projects** — pre-plan work in named backlogs, pull tasks to Today when ready
-- **Recurring tasks** — daily, weekly, every-N-days, or monthly schedules; auto-generated on startup
-- **Check-ins** — set an estimate on a task and get timed notifications to check progress
-- **History** — browse any past date's completed tasks
-- **Import / Export** — back up or migrate data as a versioned JSON file
-- **MCP server** — expose Taskify to local AI agents (Claude Desktop, etc.) over HTTP+SSE
-- **Light / dark theme**
+- **Today view** - add, reorder, complete, and filter the day's tasks.
+- **Inline tags** - type `#tag` in a title or manage tags from the task detail panel.
+- **Projects** - keep backlog tasks in named project lists, then pull them into Today.
+- **Recurring tasks** - daily, weekly, every-N-days, and monthly templates.
+- **Timed check-ins** - estimate a task and receive progress reminders.
+- **History** - browse completed work by date.
+- **Import / export** - back up or move data with versioned JSON files.
+- **Local MCP server** - expose tasks, projects, and templates to local AI agents over HTTP + SSE.
+- **Light and dark themes** - shared design tokens across desktop and mobile.
 
----
+## Privacy and Data
+
+Taskify is local-first. The desktop app stores data in an `electron-store` JSON file on the user's machine and does not require a hosted backend. The MCP server is disabled by default and, when enabled, binds to `127.0.0.1` only.
+
+Desktop storage location:
+
+```text
+%AppData%/taskify/config.json
+```
+
+The mobile app stores data locally through AsyncStorage and supports JSON import/export from the app.
 
 ## Requirements
 
-- **Node.js 18+**
-- **npm 9+**
-- No native modules — no Visual Studio C++ build tools required
+- Node.js 18+
+- npm 9+
+- Windows for the packaged desktop installer
+- Android Studio and/or Xcode for native mobile builds
 
----
+The desktop app does not use native Node modules, so Visual Studio C++ build tools are not required.
 
-## Running Locally
+## Desktop Development
 
 ```bash
-# 1. Install dependencies
 npm install
-
-# 2. Start in development mode (hot-reload)
 npm run dev
 ```
 
-`npm run dev` starts the Vite renderer dev server and Electron simultaneously. Changes to renderer files (React components, CSS) hot-reload without restarting Electron. Changes to main-process files (`src/main/`, `src/preload/`) require an Electron restart — quit the window and re-run `npm run dev`.
+`npm run dev` starts Electron through `electron-vite` with renderer hot reload. Renderer changes under `src/renderer/src/` reload automatically. Main process, preload, and MCP changes usually require restarting Electron.
 
----
-
-## Building
+Useful commands:
 
 ```bash
-# Compile everything to out/
-npm run build
+npm run build       # Build desktop bundles into out/
+npm run package     # Build a Windows installer into release/
+npm run test:unit   # Run Vitest unit tests
+npm run test:e2e    # Build, then run Playwright E2E tests
+npm run test        # Run unit and E2E tests
 ```
 
-Output goes to `out/`:
-
-```
-out/
-  main/        Compiled main process (index.js + mcp-server.js)
-  preload/     Compiled preload script
-  renderer/    Bundled React SPA (HTML + hashed assets)
-```
-
-To run the compiled build without packaging:
+To run a compiled build without packaging:
 
 ```bash
 npx electron out/main/index.js
 ```
 
----
+## Mobile Development
 
-## Packaging (Windows installer)
+The mobile app is a native Expo project that reuses the shared Taskify data model but implements its own React Native UI.
 
 ```bash
-npm run package
+cd mobile
+npm install
+npm start
 ```
 
-This runs `electron-vite build` followed by `electron-builder`. The output is an NSIS installer at `release/Taskify Setup x.y.z.exe`.
+Useful mobile commands:
 
-> electron-builder reads icon and metadata from the `build` section of `package.json`.
-
----
-
-## Project Layout
-
-```
-src/
-  main/           Main process (Node.js): db, IPC, scheduler, MCP fork
-  mcp/            MCP server child process + tool definitions
-  preload/        contextBridge API exposed to renderer as window.taskify
-  renderer/src/   React app (views, components, hooks)
-  shared/         TypeScript interfaces shared across all processes
-
-resources/        App icons (tray, window, packager)
-docs/
-  architecture.md Full architecture reference
+```bash
+npm run android     # Build and launch Android via Expo
+npm run ios         # Build and launch iOS via Expo
+npm test            # Run mobile Vitest tests
 ```
 
-See [`docs/architecture.md`](docs/architecture.md) for a complete walkthrough of the data model, IPC surface, recurring task generation, MCP server, and more.
+## Releases
 
----
+Desktop releases are tag-driven. Pushing a tag that matches `v*.*.*` runs the Windows release workflow, bumps `package.json`, builds the installer, and publishes GitHub Release assets.
 
-## Making Changes
-
-### Renderer (React)
-
-Edit files under `src/renderer/src/`. Changes hot-reload automatically in `npm run dev`.
-
-All data access goes through `window.taskify` (typed as `TaskifyAPI` from `src/preload/index.ts`). Never call Node APIs directly from the renderer.
-
-### Main Process
-
-Edit files under `src/main/`. After saving, quit Electron and re-run `npm run dev` — the main process is rebuilt but not hot-reloaded.
-
-- **`db.ts`** — add new store queries here. Update `StoreSchema` and `defaults` for any new fields; electron-store applies defaults automatically for existing installs.
-- **`ipc.ts`** — register new `ipcMain.handle()` channels here.
-- **`scheduler.ts`** — modify check-in or end-of-day notification logic here.
-
-### Adding a new IPC channel
-
-1. Add the channel name to `IpcChannel` in `src/shared/types.ts`.
-2. Add any payload types to `src/shared/types.ts`.
-3. Implement the handler in `src/main/ipc.ts`.
-4. Expose it in `src/preload/index.ts` under the appropriate namespace.
-5. Call it from the renderer via `window.taskify.<namespace>.<method>()`.
-
-### Adding a new MCP tool
-
-1. Add the tool definition (name, description, inputSchema) to the appropriate file in `src/mcp/tools/`.
-2. Add a case to that file's `handle*Tool` function.
-3. Add the corresponding bridge case in `handleMcpBridgeRequest()` in `src/main/index.ts`.
-
-### Shared types
-
-`src/shared/types.ts` is imported by the main process, preload, and renderer. Keep it free of Node-only or browser-only imports.
-
-### Data / store migrations
-
-electron-store applies `defaults` for any key not present in the existing store file — this handles additive migrations automatically. For destructive changes (renaming or removing fields), add a migration in `db.ts` using electron-store's `migrations` option.
-
-### Settings
-
-New settings fields go in `AppSettings` (`src/shared/types.ts`) with a default value in `store` defaults in `db.ts`. The renderer reads and writes them through `window.taskify.settings.get/set`.
-
----
-
-## MCP Server (AI agent integration)
-
-Enable the MCP server in **Settings → MCP Server**. Once enabled, any local MCP client can connect:
-
+```bash
+git tag v0.0.4
+git push origin v0.0.4
 ```
+
+The release workflow expects the GitHub Actions release environment to provide `GH_TOKEN`.
+
+Mobile builds are run manually from the `Build and Release Mobile (EAS)` workflow. That workflow builds the Expo project with EAS and expects `EXPO_TOKEN` to be configured as a GitHub Actions secret.
+
+## MCP Server
+
+Enable the MCP server in **Settings > MCP Server**. Local MCP clients can then connect while Taskify is running:
+
+```text
 SSE endpoint:  http://localhost:57391/sse
 POST endpoint: http://localhost:57391/message
 ```
 
-Copy the Claude Desktop config snippet from Settings and paste it into your `claude_desktop_config.json`:
+Claude Desktop example:
 
 ```json
 {
@@ -160,4 +118,32 @@ Copy the Claude Desktop config snippet from Settings and paste it into your `cla
 }
 ```
 
-The server only starts when enabled and always binds to `127.0.0.1` — it is not reachable from the network.
+The server starts only when enabled and binds to `127.0.0.1`.
+
+## Project Layout
+
+```text
+src/
+  main/           Electron main process: app lifecycle, db, IPC, scheduler
+  mcp/            Optional MCP server and tool definitions
+  preload/        contextBridge API exposed to the renderer
+  renderer/src/   React desktop UI
+  shared/         TypeScript interfaces shared by desktop and mobile
+
+mobile/           Expo / React Native companion app
+resources/        App icons and release assets
+docs/             Architecture and implementation notes
+tests/            Desktop unit and E2E tests
+```
+
+See [docs/architecture.md](docs/architecture.md) for a deeper walkthrough of the process model, data schema, IPC surface, recurring task generation, MCP bridge, and mobile architecture.
+
+## Contributing
+
+Issues and focused pull requests are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a PR.
+
+For security reports, see [SECURITY.md](SECURITY.md).
+
+## License
+
+Taskify is licensed under the [MIT License](LICENSE).

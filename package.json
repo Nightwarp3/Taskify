@@ -2,6 +2,7 @@
   "name": "taskify",
   "version": "0.0.3",
   "description": "A focused daily task manager with system tray check-ins",
+  "license": "MIT",
   "main": "out/main/index.js",
   "scripts": {
     "dev": "electron-vite dev",
