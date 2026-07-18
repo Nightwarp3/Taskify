@@ -56,6 +56,7 @@ export interface AppSettings {
   startOfDayTime: string
   defaultCheckInInterval: number
   theme: 'light' | 'dark'
+  closeBehavior: 'background' | 'exit'
   wizardCompleted: boolean
   mcpPort: number
   mcpEnabled: boolean

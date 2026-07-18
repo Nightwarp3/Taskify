@@ -56,6 +56,17 @@ interface StoreData {
   sequences: { nextTaskId: number; nextCheckInId: number; nextProjectId: number; nextTemplateId: number }
 }
 
+const DEFAULT_SETTINGS: AppSettings = {
+  endOfDayTime: '17:00',
+  startOfDayTime: '09:00',
+  defaultCheckInInterval: 30,
+  theme: 'dark',
+  closeBehavior: 'background',
+  wizardCompleted: false,
+  mcpPort: 57391,
+  mcpEnabled: false
+}
+
 // ── In-memory cache ───────────────────────────────────────────────────────
 
 let cache: StoreData = {
@@ -64,15 +75,7 @@ let cache: StoreData = {
   checkIns: {},
   projects: {},
   recurringTemplates: {},
-  settings: {
-    endOfDayTime: '17:00',
-    startOfDayTime: '09:00',
-    defaultCheckInInterval: 30,
-    theme: 'dark',
-    wizardCompleted: false,
-    mcpPort: 57391,
-    mcpEnabled: false
-  },
+  settings: DEFAULT_SETTINGS,
   sequences: { nextTaskId: 1, nextCheckInId: 1, nextProjectId: 1, nextTemplateId: 1 }
 }
 
@@ -92,7 +95,15 @@ export async function initStorage(): Promise<void> {
   const [tasks, tasksByDate, checkIns, projects, recurringTemplates, settings, sequences] =
     await Promise.all(KEYS.map((k) => load(k, cache[k])))
 
-  cache = { tasks, tasksByDate, checkIns, projects, recurringTemplates, settings, sequences } as StoreData
+  cache = {
+    tasks,
+    tasksByDate,
+    checkIns,
+    projects,
+    recurringTemplates,
+    settings: { ...DEFAULT_SETTINGS, ...(settings as Partial<AppSettings>) },
+    sequences
+  } as StoreData
 }
 
 async function flush(...keys: (keyof StoreData)[]): Promise<void> {
@@ -438,7 +449,7 @@ export const templateQueries = {
 
 export const settingsQueries = {
   async get(): Promise<AppSettings> {
-    return { ...cache.settings }
+    return { ...DEFAULT_SETTINGS, ...cache.settings }
   },
 
   async set(key: keyof AppSettings, value: unknown): Promise<void> {
@@ -485,7 +496,7 @@ export async function exportData(): Promise<ExportData> {
     tasks: Object.values(cache.tasks).map(toTask),
     projects: Object.values(cache.projects),
     recurringTemplates: Object.values(cache.recurringTemplates),
-    settings: { ...cache.settings }
+    settings: { ...DEFAULT_SETTINGS, ...cache.settings }
   }
 }
 

@@ -19,6 +19,7 @@ const SEED_STORE = {
     startOfDayTime: '09:00',
     defaultCheckInInterval: 30,
     theme: 'dark',
+    closeBehavior: 'background',
     wizardCompleted: true,
     mcpPort: 57391,
     mcpEnabled: false

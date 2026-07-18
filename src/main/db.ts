@@ -51,6 +51,17 @@ interface StoredCheckIn {
   snoozedUntil: string | null
 }
 
+const DEFAULT_SETTINGS: AppSettings = {
+  endOfDayTime: '17:00',
+  startOfDayTime: '09:00',
+  defaultCheckInInterval: 30,
+  theme: 'dark',
+  closeBehavior: 'background',
+  wizardCompleted: false,
+  mcpPort: 57391,
+  mcpEnabled: false
+}
+
 const store = new Store<StoreSchema>({
   defaults: {
     tasks: {},
@@ -58,15 +69,7 @@ const store = new Store<StoreSchema>({
     checkIns: {},
     projects: {},
     recurringTemplates: {},
-    settings: {
-      endOfDayTime: '17:00',
-      startOfDayTime: '09:00',
-      defaultCheckInInterval: 30,
-      theme: 'dark',
-      wizardCompleted: false,
-      mcpPort: 57391,
-      mcpEnabled: false
-    },
+    settings: DEFAULT_SETTINGS,
     nextTaskId: 1,
     nextCheckInId: 1,
     nextProjectId: 1,
@@ -467,7 +470,7 @@ export const templateQueries = {
 
 export const settingsQueries = {
   get(): AppSettings {
-    return store.get('settings')
+    return { ...DEFAULT_SETTINGS, ...store.get('settings') }
   },
 
   set(key: keyof AppSettings, value: unknown): void {

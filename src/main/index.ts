@@ -15,6 +15,7 @@ import { setupUpdates, checkForUpdates } from './updater'
 let win: BrowserWindow | null = null
 let tray: Tray | null = null
 let mcpProcess: ChildProcess | null = null
+let isQuitting = false
 
 function createWindow(): BrowserWindow {
   win = new BrowserWindow({
@@ -34,6 +35,7 @@ function createWindow(): BrowserWindow {
   })
 
   win.on('close', (e) => {
+    if (isQuitting || settingsQueries.get().closeBehavior === 'exit') return
     e.preventDefault()
     win?.hide()
   })
@@ -278,6 +280,7 @@ app.whenReady().then(() => {
 })
 
 app.on('before-quit', () => {
+  isQuitting = true
   win?.removeAllListeners('close')
   stopMcpServer()
 })
