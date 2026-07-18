@@ -8,6 +8,7 @@ import { TaskifyProvider, useTaskify } from './providers/TaskifyProvider'
 import { colorsFor } from './lib/theme'
 import RootNavigator from './navigation/RootNavigator'
 import WizardModal from './components/WizardModal'
+import WeeklyRecapModal from './components/WeeklyRecapModal'
 
 function Root() {
   const { theme, wizardCompleted } = useTaskify()
@@ -36,6 +37,7 @@ function Root() {
         <RootNavigator onReopenWizard={() => setShowWizard(true)} />
       </NavigationContainer>
       <WizardModal visible={showWizard} onComplete={() => setShowWizard(false)} />
+      <WeeklyRecapModal disabled={showWizard} />
     </>
   )
 }

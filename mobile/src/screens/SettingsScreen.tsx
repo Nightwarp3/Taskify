@@ -4,6 +4,7 @@ import { View, Text, TextInput, Pressable, ScrollView } from 'react-native'
 import type { AppSettings } from '@shared/types'
 import { useTaskify } from '../providers/TaskifyProvider'
 import TimeField from '../components/TimeField'
+import WorkdaySelector, { dayLabel, firstSelectedDay } from '../components/WorkdaySelector'
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -60,6 +61,13 @@ export default function SettingsScreen({ onReopenWizard }: { onReopenWizard: () 
     onReopenWizard()
   }
 
+  const cycleStartOfWeek = () => {
+    if (!settings) return
+    const days = settings.workDays
+    const index = days.indexOf(settings.startOfWeekDay)
+    update('startOfWeekDay', days[(index + 1) % days.length] ?? firstSelectedDay(days))
+  }
+
   if (!settings) return <View className="flex-1 bg-canvas p-4"><Text className="text-sm text-ghost">Loading…</Text></View>
 
   return (
@@ -87,6 +95,20 @@ export default function SettingsScreen({ onReopenWizard }: { onReopenWizard: () 
           </Field>
           <Field label="End of day reminder" hint="Notification fires if you have incomplete tasks">
             <TimeField value={settings.endOfDayTime} onChange={(v) => update('endOfDayTime', v)} />
+          </Field>
+          <Field label="Work days" hint="Used for reminders and weekly recap timing">
+            <WorkdaySelector
+              value={settings.workDays}
+              onChange={(value) => {
+                update('workDays', value)
+                if (!value.includes(settings.startOfWeekDay)) update('startOfWeekDay', firstSelectedDay(value))
+              }}
+            />
+          </Field>
+          <Field label="Start of week" hint="Controls history grouping and weekly recap">
+            <Pressable onPress={cycleStartOfWeek} className="px-3 py-1.5 bg-well border border-rim rounded-md">
+              <Text className="text-xs font-medium text-ink">{dayLabel(settings.startOfWeekDay)}</Text>
+            </Pressable>
           </Field>
         </View>
       </Section>
