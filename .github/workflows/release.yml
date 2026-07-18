@@ -41,13 +41,19 @@ jobs:
       - name: Build and package
         run: npx electron-vite build && npx electron-builder --publish never
 
+      - name: Normalize installer asset name
+        shell: pwsh
+        run: |
+          $version = "${{ steps.version.outputs.version }}"
+          Copy-Item "release/Taskify Setup $version.exe" "release/Taskify-Setup-$version.exe"
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           name: Taskify ${{ github.ref_name }}
           generate_release_notes: true
           files: |
-            release/*.exe
+            release/Taskify-Setup-*.exe
             release/latest.yml
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
