@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import type { AppSettings, UpdateState } from '../../../shared/types'
+import WorkdaySelector, { firstSelectedDay } from '../components/WorkdaySelector'
 
 interface Props {
   onThemeChange: (theme: 'light' | 'dark') => void
@@ -130,6 +131,30 @@ export default function SettingsView({ onThemeChange, onReopenWizard }: Props) {
               onChange={(e) => update('endOfDayTime', e.target.value)}
               className={inputCls}
             />
+          </Field>
+          <Field label="Work days" hint="Used for reminders and weekly recap timing">
+            <WorkdaySelector
+              value={settings.workDays}
+              onChange={(value) => {
+                update('workDays', value)
+                if (!value.includes(settings.startOfWeekDay)) {
+                  update('startOfWeekDay', firstSelectedDay(value))
+                }
+              }}
+            />
+          </Field>
+          <Field label="Start of week" hint="Controls history grouping and weekly recap">
+            <select
+              value={settings.startOfWeekDay}
+              onChange={(e) => update('startOfWeekDay', Number(e.target.value))}
+              className={inputCls}
+            >
+              {settings.workDays.map((day) => (
+                <option key={day} value={day}>
+                  {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][day]}
+                </option>
+              ))}
+            </select>
           </Field>
         </div>
       </div>

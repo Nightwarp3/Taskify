@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import appLogo from '../assets/taskify-solid-original.png'
 import type { AppSettings } from '../../../shared/types'
+import WorkdaySelector, { firstSelectedDay } from './WorkdaySelector'
 
 interface Props {
   onComplete: () => void
@@ -32,6 +33,8 @@ export default function WizardModal({ onComplete, onThemeChange, currentTheme }:
   const [step, setStep] = useState(0)
   const [startTime, setStartTime] = useState('09:00')
   const [endTime, setEndTime] = useState('17:00')
+  const [workDays, setWorkDays] = useState([1, 2, 3, 4, 5])
+  const [startOfWeekDay, setStartOfWeekDay] = useState(1)
   const [interval, setInterval] = useState('30')
   const [notifGranted, setNotifGranted] = useState<boolean | null>(null)
   const [theme, setTheme] = useState<'light' | 'dark'>(currentTheme)
@@ -57,6 +60,8 @@ export default function WizardModal({ onComplete, onThemeChange, currentTheme }:
     if (step === 1) {
       await persist('startOfDayTime', startTime)
       await persist('endOfDayTime', endTime)
+      await persist('workDays', workDays)
+      await persist('startOfWeekDay', startOfWeekDay)
     } else if (step === 2) {
       const mins = parseInt(interval, 10)
       if (!isNaN(mins) && mins >= 5) await persist('defaultCheckInInterval', mins)
@@ -123,6 +128,32 @@ export default function WizardModal({ onComplete, onThemeChange, currentTheme }:
                 <span className="text-sm text-ink">End time</span>
                 <input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)}
                   className={inputCls} />
+              </div>
+              <div>
+                <div className="flex items-center justify-between gap-3 mb-2">
+                  <span className="text-sm text-ink">Work days</span>
+                  <WorkdaySelector
+                    value={workDays}
+                    onChange={(value) => {
+                      setWorkDays(value)
+                      if (!value.includes(startOfWeekDay)) setStartOfWeekDay(firstSelectedDay(value))
+                    }}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-ink">Week starts</span>
+                  <select
+                    value={startOfWeekDay}
+                    onChange={(e) => setStartOfWeekDay(Number(e.target.value))}
+                    className={inputCls}
+                  >
+                    {workDays.map((day) => (
+                      <option key={day} value={day}>
+                        {DAYS[day]}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
             </div>
             <NavButtons onBack={back} onSkip={skip} onNext={next} />

@@ -163,6 +163,9 @@ export function scheduleEndOfDay(win: () => BrowserWindow | null): void {
   const [h, m] = settings.endOfDayTime.split(':').map(Number)
 
   const job = schedule.scheduleJob({ hour: h, minute: m }, () => {
+    const day = new Date().getDay()
+    if (!settings.workDays.includes(day)) return
+
     const today = localDateString()
     const tasks = taskQueries.listByDate(today)
     const incomplete = tasks.filter((t) => !t.completed)

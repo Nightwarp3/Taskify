@@ -47,6 +47,10 @@ export function registerIpcHandlers(getWindow: () => BrowserWindow | null): void
     return taskQueries.listWeekHistory(today)
   })
 
+  ipcMain.handle('tasks:listHistoryRange', (_, startDate: string, endDate: string) => {
+    return taskQueries.listHistoryRange(startDate, endDate)
+  })
+
   ipcMain.handle('tasks:listByProject', (_, projectId: number) => {
     return taskQueries.listByProject(projectId)
   })

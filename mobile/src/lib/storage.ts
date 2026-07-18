@@ -56,9 +56,12 @@ interface StoreData {
   sequences: { nextTaskId: number; nextCheckInId: number; nextProjectId: number; nextTemplateId: number }
 }
 
-const DEFAULT_SETTINGS: AppSettings = {
+const defaultSettings: AppSettings = {
   endOfDayTime: '17:00',
   startOfDayTime: '09:00',
+  workDays: [1, 2, 3, 4, 5],
+  startOfWeekDay: 1,
+  weeklyRecapDismissedDate: null,
   defaultCheckInInterval: 30,
   theme: 'dark',
   closeBehavior: 'background',
@@ -75,7 +78,7 @@ let cache: StoreData = {
   checkIns: {},
   projects: {},
   recurringTemplates: {},
-  settings: DEFAULT_SETTINGS,
+  settings: defaultSettings,
   sequences: { nextTaskId: 1, nextCheckInId: 1, nextProjectId: 1, nextTemplateId: 1 }
 }
 
@@ -101,7 +104,7 @@ export async function initStorage(): Promise<void> {
     checkIns,
     projects,
     recurringTemplates,
-    settings: { ...DEFAULT_SETTINGS, ...(settings as Partial<AppSettings>) },
+    settings: { ...defaultSettings, ...settings },
     sequences
   } as StoreData
 }
@@ -114,10 +117,16 @@ async function flush(...keys: (keyof StoreData)[]): Promise<void> {
 
 function toTask(s: StoredTask): Task { return { ...s } }
 
-function weekStart(date: string): string {
+function weekStart(date: string, startDay = cache.settings.startOfWeekDay ?? 1): string {
   const d = new Date(date + 'T00:00:00')
   const day = d.getDay()
-  const offset = day === 0 ? -6 : 1 - day
+  const offset = (day - startDay + 7) % 7
+  d.setDate(d.getDate() - offset)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+function offsetDate(date: string, offset: number): string {
+  const d = new Date(date + 'T00:00:00')
   d.setDate(d.getDate() + offset)
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
@@ -160,9 +169,13 @@ export const taskQueries = {
 
   async listWeekHistory(today: string): Promise<TaskDateGroup[]> {
     const start = weekStart(today)
+    return this.listHistoryRange(start, offsetDate(today, -1))
+  },
+
+  async listHistoryRange(startDate: string, endDate: string): Promise<TaskDateGroup[]> {
     const groups: TaskDateGroup[] = []
     for (const [date, ids] of Object.entries(cache.tasksByDate)) {
-      if (date < start || date >= today) continue
+      if (date < startDate || date > endDate) continue
       const dayTasks = (ids as number[])
         .map((id) => cache.tasks[id])
         .filter((t) => t && !t.backlog)
@@ -449,7 +462,7 @@ export const templateQueries = {
 
 export const settingsQueries = {
   async get(): Promise<AppSettings> {
-    return { ...DEFAULT_SETTINGS, ...cache.settings }
+    return { ...defaultSettings, ...cache.settings }
   },
 
   async set(key: keyof AppSettings, value: unknown): Promise<void> {

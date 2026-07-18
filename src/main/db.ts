@@ -51,9 +51,12 @@ interface StoredCheckIn {
   snoozedUntil: string | null
 }
 
-const DEFAULT_SETTINGS: AppSettings = {
+const defaultSettings: AppSettings = {
   endOfDayTime: '17:00',
   startOfDayTime: '09:00',
+  workDays: [1, 2, 3, 4, 5],
+  startOfWeekDay: 1,
+  weeklyRecapDismissedDate: null,
   defaultCheckInInterval: 30,
   theme: 'dark',
   closeBehavior: 'background',
@@ -69,7 +72,7 @@ const store = new Store<StoreSchema>({
     checkIns: {},
     projects: {},
     recurringTemplates: {},
-    settings: DEFAULT_SETTINGS,
+    settings: defaultSettings,
     nextTaskId: 1,
     nextCheckInId: 1,
     nextProjectId: 1,
@@ -81,10 +84,16 @@ function toTask(s: StoredTask): Task {
   return { ...s }
 }
 
-function weekStart(date: string): string {
+function weekStart(date: string, startDay = settingsQueries.get().startOfWeekDay ?? 1): string {
   const d = new Date(date + 'T00:00:00')
   const day = d.getDay()
-  const offset = day === 0 ? -6 : 1 - day
+  const offset = (day - startDay + 7) % 7
+  d.setDate(d.getDate() - offset)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+function offsetDate(date: string, offset: number): string {
+  const d = new Date(date + 'T00:00:00')
   d.setDate(d.getDate() + offset)
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
@@ -120,12 +129,16 @@ export const taskQueries = {
 
   listWeekHistory(today: string): TaskDateGroup[] {
     const start = weekStart(today)
+    return this.listHistoryRange(start, offsetDate(today, -1))
+  },
+
+  listHistoryRange(startDate: string, endDate: string): TaskDateGroup[] {
     const tasksByDate = store.get('tasksByDate')
     const tasks = store.get('tasks')
     const groups: TaskDateGroup[] = []
 
     for (const [date, ids] of Object.entries(tasksByDate)) {
-      if (date < start || date >= today) continue
+      if (date < startDate || date > endDate) continue
       const dayTasks = (ids as number[])
         .map((id) => tasks[id])
         .filter((t) => t && !t.backlog)
@@ -470,7 +483,7 @@ export const templateQueries = {
 
 export const settingsQueries = {
   get(): AppSettings {
-    return { ...DEFAULT_SETTINGS, ...store.get('settings') }
+    return { ...defaultSettings, ...store.get('settings') }
   },
 
   set(key: keyof AppSettings, value: unknown): void {

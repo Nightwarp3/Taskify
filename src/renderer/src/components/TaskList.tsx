@@ -7,6 +7,7 @@ import {
   type DragEndEvent
 } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
+import { useState } from 'react'
 import type { Task } from '../../../shared/types'
 import TaskItem from './TaskItem'
 
@@ -15,7 +16,7 @@ interface Props {
   onToggle: (id: number, completed: boolean) => void
   onUpdate: (id: number, fields: { title?: string; notes?: string; links?: string[]; tags?: string[] }) => void
   onDelete: (id: number) => void
-  onReorder: (orderedIds: number[]) => void
+  onReorder?: (orderedIds: number[]) => void
   onNavigateToTemplate?: (templateId: number) => void
   readonly?: boolean
   emptyMessage?: string
@@ -27,7 +28,7 @@ export default function TaskList({
   onToggle,
   onUpdate,
   onDelete,
-  onReorder,
+  onReorder = () => {},
   onNavigateToTemplate,
   readonly,
   emptyMessage = 'No tasks yet — add one above',

@@ -17,6 +17,9 @@ const SEED_STORE = {
   settings: {
     endOfDayTime: '17:00',
     startOfDayTime: '09:00',
+    workDays: [1, 2, 3, 4, 5],
+    startOfWeekDay: 1,
+    weeklyRecapDismissedDate: null,
     defaultCheckInInterval: 30,
     theme: 'dark',
     closeBehavior: 'background',
