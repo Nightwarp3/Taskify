@@ -177,6 +177,31 @@ export default function SettingsView({ onThemeChange, onReopenWizard }: Props) {
         </Field>
       </div>
 
+      {/* Window close behavior */}
+      <div className="bg-raised rounded-lg border border-rim p-3 shadow-elev-1">
+        <div className="text-xs font-semibold text-muted uppercase tracking-wider mb-3">Window</div>
+        <Field label="On close" hint="Choose whether the app hides to the tray or exits completely">
+          <div className="flex rounded-pill border border-rim overflow-hidden text-xs font-medium">
+            {([
+              ['background', 'Keep running'],
+              ['exit', 'Exit completely']
+            ] as const).map(([value, label]) => (
+              <button
+                key={value}
+                onClick={() => update('closeBehavior', value)}
+                className={`px-3 py-1.5 transition-colors ${
+                  settings.closeBehavior === value
+                    ? 'bg-accent text-on-accent'
+                    : 'text-muted hover:text-ink hover:bg-well'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </Field>
+      </div>
+
       {/* Updates */}
       {import.meta.env.VITE_PLATFORM !== 'capacitor' && (
         <div className="bg-raised rounded-lg border border-rim p-3 shadow-elev-1">

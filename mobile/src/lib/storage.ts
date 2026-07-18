@@ -64,6 +64,7 @@ const defaultSettings: AppSettings = {
   weeklyRecapDismissedDate: null,
   defaultCheckInInterval: 30,
   theme: 'dark',
+  closeBehavior: 'background',
   wizardCompleted: false,
   mcpPort: 57391,
   mcpEnabled: false
@@ -508,7 +509,7 @@ export async function exportData(): Promise<ExportData> {
     tasks: Object.values(cache.tasks).map(toTask),
     projects: Object.values(cache.projects),
     recurringTemplates: Object.values(cache.recurringTemplates),
-    settings: { ...cache.settings }
+    settings: { ...DEFAULT_SETTINGS, ...cache.settings }
   }
 }
 

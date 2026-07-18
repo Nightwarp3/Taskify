@@ -59,6 +59,7 @@ export interface AppSettings {
   weeklyRecapDismissedDate: string | null
   defaultCheckInInterval: number
   theme: 'light' | 'dark'
+  closeBehavior: 'background' | 'exit'
   wizardCompleted: boolean
   mcpPort: number
   mcpEnabled: boolean

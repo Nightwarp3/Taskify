@@ -59,6 +59,7 @@ const defaultSettings: AppSettings = {
   weeklyRecapDismissedDate: null,
   defaultCheckInInterval: 30,
   theme: 'dark',
+  closeBehavior: 'background',
   wizardCompleted: false,
   mcpPort: 57391,
   mcpEnabled: false
