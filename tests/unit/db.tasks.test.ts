@@ -351,6 +351,32 @@ describe('listWeekHistory()', () => {
   })
 })
 
+describe('listHistoryRange()', () => {
+  it('returns all non-backlog tasks in an inclusive date range', () => {
+    taskQueries.add('Out of range', '2026-06-14')
+    taskQueries.add('Start', '2026-06-15')
+    taskQueries.add('Middle', YESTERDAY)
+    taskQueries.add('End', TODAY)
+    taskQueries.add('Backlog', YESTERDAY, { backlog: true, projectId: 1 })
+
+    const groups = taskQueries.listHistoryRange('2026-06-15', TODAY)
+
+    expect(groups.map((g) => g.date)).toEqual([TODAY, YESTERDAY, '2026-06-15'])
+    expect(groups.flatMap((g) => g.tasks.map((t) => t.title))).toEqual(['End', 'Middle', 'Start'])
+  })
+
+  it('uses the configured start-of-week day for week history', async () => {
+    const db = await import('../../src/main/db')
+    db.settingsQueries.set('startOfWeekDay', 4)
+    taskQueries.add('Thursday', YESTERDAY)
+    taskQueries.add('Wednesday', '2026-06-17')
+
+    const groups = taskQueries.listWeekHistory(TODAY)
+
+    expect(groups.map((g) => g.date)).toEqual([YESTERDAY])
+  })
+})
+
 describe('getAll()', () => {
   it('returns all tasks regardless of date or backlog status', () => {
     taskQueries.add('Scheduled', TODAY)

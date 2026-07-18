@@ -25,6 +25,8 @@ const api = {
       ipcRenderer.invoke('tasks:listOverdue', today),
     listWeekHistory: (today: string): Promise<TaskDateGroup[]> =>
       ipcRenderer.invoke('tasks:listWeekHistory', today),
+    listHistoryRange: (startDate: string, endDate: string): Promise<TaskDateGroup[]> =>
+      ipcRenderer.invoke('tasks:listHistoryRange', startDate, endDate),
     listByProject: (projectId: number): Promise<Task[]> =>
       ipcRenderer.invoke('tasks:listByProject', projectId),
     add: (payload: TaskAddPayload): Promise<Task> =>

@@ -45,6 +45,7 @@ export interface TaskifyAPI {
     listByDate(date: string): Promise<Task[]>
     listOverdue(today: string): Promise<OverdueDateGroup[]>
     listWeekHistory(today: string): Promise<TaskDateGroup[]>
+    listHistoryRange(startDate: string, endDate: string): Promise<TaskDateGroup[]>
     listByProject(projectId: number): Promise<Task[]>
     add(payload: TaskAddPayload): Promise<Task>
     update(payload: TaskUpdatePayload): Promise<Task | null>
@@ -102,6 +103,7 @@ export const taskify: TaskifyAPI = {
     listByDate: (date) => taskQueries.listByDate(date),
     listOverdue: (today) => taskQueries.listOverdue(today),
     listWeekHistory: (today) => taskQueries.listWeekHistory(today),
+    listHistoryRange: (startDate, endDate) => taskQueries.listHistoryRange(startDate, endDate),
     listByProject: (projectId) => taskQueries.listByProject(projectId),
 
     add: async (payload: TaskAddPayload) => {
@@ -201,7 +203,7 @@ export const taskify: TaskifyAPI = {
         // Native status/nav bar sync is handled by TaskifyProvider.
         emit('theme:changed', value)
       }
-      if (key === 'endOfDayTime' || key === 'startOfDayTime') {
+      if (key === 'endOfDayTime' || key === 'startOfDayTime' || key === 'workDays') {
         try {
           const s = await settingsQueries.get()
           await scheduleEndOfDay(s)

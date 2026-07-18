@@ -6,6 +6,7 @@ import SettingsView from './views/SettingsView'
 import ProjectsView from './views/ProjectsView'
 import RecurringView from './views/RecurringView'
 import WizardModal from './components/WizardModal'
+import WeeklyRecapModal from './components/WeeklyRecapModal'
 import type { UpdateState } from '../../shared/types'
 
 function localDateString(): string {
@@ -169,6 +170,8 @@ export default function App() {
           currentTheme={theme}
         />
       )}
+
+      {!showWizard && <WeeklyRecapModal />}
 
       {updateState?.status === 'downloaded' && (
         <div className="fixed left-4 right-4 bottom-4 z-50 flex items-center justify-between gap-3 rounded-lg border border-rim bg-raised px-3 py-2 shadow-elev-1">

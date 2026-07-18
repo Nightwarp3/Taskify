@@ -54,6 +54,9 @@ export interface CheckIn {
 export interface AppSettings {
   endOfDayTime: string
   startOfDayTime: string
+  workDays: number[]
+  startOfWeekDay: number
+  weeklyRecapDismissedDate: string | null
   defaultCheckInInterval: number
   theme: 'light' | 'dark'
   wizardCompleted: boolean
@@ -111,6 +114,7 @@ export type IpcChannel =
   | 'tasks:listByDate'
   | 'tasks:listOverdue'
   | 'tasks:listWeekHistory'
+  | 'tasks:listHistoryRange'
   | 'tasks:listByProject'
   | 'tasks:pullToToday'
   | 'projects:list'
