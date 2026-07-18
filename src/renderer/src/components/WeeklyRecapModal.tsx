@@ -59,6 +59,17 @@ export default function WeeklyRecapModal() {
     })
   }
 
+  const toggleRecapTask = async (id: number, completed: boolean) => {
+    await updateTask({ id, completed })
+    if (completed) {
+      setVisibleIds((prev) => {
+        const next = new Set(prev ?? [])
+        next.delete(id)
+        return next
+      })
+    }
+  }
+
   if (!shouldShowToday || loading || !visibleIds || recapGroups.length === 0) return null
 
   return (
@@ -82,7 +93,7 @@ export default function WeeklyRecapModal() {
         <div className="overflow-y-auto py-2">
           <TaskDateGroups
             groups={recapGroups}
-            onToggle={(id, completed) => updateTask({ id, completed })}
+            onToggle={toggleRecapTask}
             onUpdate={(id, fields) => updateTask({ id, ...fields })}
             onPullToToday={moveToToday}
             collapseWhenNoIncomplete={false}
