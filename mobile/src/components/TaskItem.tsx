@@ -13,7 +13,7 @@ interface Props {
   task: Task
   onToggle: (id: number, completed: boolean) => void
   onUpdate: (id: number, fields: { title?: string; notes?: string; links?: string[]; tags?: string[] }) => void
-  onDelete: (id: number) => void
+  onDelete?: (id: number) => void
   onNavigateToTemplate?: (templateId: number) => void
   readonly?: boolean
   drag?: () => void
@@ -134,7 +134,7 @@ export default function TaskItem({
           <Pressable onPress={() => setExpanded((v) => !v)} className="w-7 h-7 items-center justify-center">
             <Text className="text-ghost text-xs">{expanded ? '▲' : '▼'}</Text>
           </Pressable>
-          {!readonly && (
+          {!readonly && onDelete && (
             <Pressable onPress={() => onDelete(task.id)} className="w-7 h-7 items-center justify-center">
               <Text className="text-ghost text-xs">✕</Text>
             </Pressable>

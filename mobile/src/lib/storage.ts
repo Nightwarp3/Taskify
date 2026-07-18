@@ -509,7 +509,7 @@ export async function exportData(): Promise<ExportData> {
     tasks: Object.values(cache.tasks).map(toTask),
     projects: Object.values(cache.projects),
     recurringTemplates: Object.values(cache.recurringTemplates),
-    settings: { ...DEFAULT_SETTINGS, ...cache.settings }
+    settings: { ...defaultSettings, ...cache.settings }
   }
 }
 

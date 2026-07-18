@@ -116,4 +116,38 @@ describe('taskQueries history and carry-over', () => {
     expect((await storage.taskQueries.listByDate('2026-06-19')).map((t) => t.id)).toEqual([task.id])
     expect((await storage.taskQueries.getById(task.id))?.date).toBe('2026-06-19')
   })
+
+  it('lists non-backlog tasks in an inclusive history range', async () => {
+    await storage.taskQueries.add('Out of range', '2026-06-14')
+    await storage.taskQueries.add('Start', '2026-06-15')
+    await storage.taskQueries.add('Middle', '2026-06-18')
+    await storage.taskQueries.add('End', '2026-06-19')
+    await storage.taskQueries.add('Backlog', '2026-06-18', { backlog: true, projectId: 1 })
+
+    const groups = await storage.taskQueries.listHistoryRange('2026-06-15', '2026-06-19')
+
+    expect(groups.map((g) => g.date)).toEqual(['2026-06-19', '2026-06-18', '2026-06-15'])
+    expect(groups.flatMap((g) => g.tasks.map((t) => t.title))).toEqual(['End', 'Middle', 'Start'])
+  })
+
+  it('uses the configured start-of-week day for week history', async () => {
+    await storage.settingsQueries.set('startOfWeekDay', 4)
+    await storage.taskQueries.add('Thursday', '2026-06-18')
+    await storage.taskQueries.add('Wednesday', '2026-06-17')
+
+    const groups = await storage.taskQueries.listWeekHistory('2026-06-19')
+
+    expect(groups.map((g) => g.date)).toEqual(['2026-06-18'])
+  })
+})
+
+describe('settings and exportData', () => {
+  it('exports settings with mobile defaults merged in', async () => {
+    const data = await storage.exportData()
+
+    expect(data.settings.workDays).toEqual([1, 2, 3, 4, 5])
+    expect(data.settings.startOfWeekDay).toBe(1)
+    expect(data.settings.weeklyRecapDismissedDate).toBeNull()
+    expect(data.settings.closeBehavior).toBe('background')
+  })
 })

@@ -4,6 +4,7 @@ import { Modal, View, Text, TextInput, Pressable } from 'react-native'
 import type { AppSettings } from '@shared/types'
 import { useTaskify } from '../providers/TaskifyProvider'
 import TimeField from './TimeField'
+import WorkdaySelector, { dayLabel, firstSelectedDay } from './WorkdaySelector'
 
 interface Props {
   visible: boolean
@@ -41,6 +42,8 @@ export default function WizardModal({ visible, onComplete }: Props) {
   const [step, setStep] = useState(0)
   const [startTime, setStartTime] = useState('09:00')
   const [endTime, setEndTime] = useState('17:00')
+  const [workDays, setWorkDays] = useState([1, 2, 3, 4, 5])
+  const [startOfWeekDay, setStartOfWeekDay] = useState(1)
   const [interval, setIntervalValue] = useState('30')
   const [notifGranted, setNotifGranted] = useState<boolean | null>(null)
 
@@ -56,6 +59,8 @@ export default function WizardModal({ visible, onComplete }: Props) {
     if (step === 1) {
       await persist('startOfDayTime', startTime)
       await persist('endOfDayTime', endTime)
+      await persist('workDays', workDays)
+      await persist('startOfWeekDay', startOfWeekDay)
     } else if (step === 2) {
       const mins = parseInt(interval, 10)
       if (!isNaN(mins) && mins >= 5) await persist('defaultCheckInInterval', mins)
@@ -111,6 +116,30 @@ export default function WizardModal({ visible, onComplete }: Props) {
                 <View className="flex-row items-center justify-between">
                   <Text className="text-sm text-ink">End time</Text>
                   <TimeField value={endTime} onChange={setEndTime} />
+                </View>
+                <View className="gap-2">
+                  <View className="flex-row items-center justify-between gap-3">
+                    <Text className="text-sm text-ink">Work days</Text>
+                    <WorkdaySelector
+                      value={workDays}
+                      onChange={(value) => {
+                        setWorkDays(value)
+                        if (!value.includes(startOfWeekDay)) setStartOfWeekDay(firstSelectedDay(value))
+                      }}
+                    />
+                  </View>
+                  <View className="flex-row items-center justify-between">
+                    <Text className="text-sm text-ink">Week starts</Text>
+                    <Pressable
+                      onPress={() => {
+                        const index = workDays.indexOf(startOfWeekDay)
+                        setStartOfWeekDay(workDays[(index + 1) % workDays.length] ?? firstSelectedDay(workDays))
+                      }}
+                      className="px-3 py-1.5 bg-well border border-rim rounded-md"
+                    >
+                      <Text className="text-xs font-medium text-ink">{dayLabel(startOfWeekDay)}</Text>
+                    </Pressable>
+                  </View>
                 </View>
               </View>
               <NavButtons onBack={back} onSkip={finish} onNext={next} />

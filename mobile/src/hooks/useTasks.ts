@@ -191,3 +191,63 @@ export function useWeekHistoryTasks(today: string) {
 
   return { groups, updateTask, deleteTask, pullToToday, reload: load }
 }
+
+export function useHistoryRangeTasks(startDate: string, endDate: string) {
+  const api = useTaskifyApi()
+  const [groups, setGroups] = useState<TaskDateGroup[]>([])
+  const [loading, setLoading] = useState(true)
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    const result = await api.tasks.listHistoryRange(startDate, endDate)
+    setGroups(result)
+    setLoading(false)
+  }, [api, startDate, endDate])
+
+  useEffect(() => {
+    load()
+    const off = api.on('tasks:refreshed', load)
+    return off
+  }, [api, load])
+
+  const updateTask = useCallback(
+    async (payload: TaskUpdatePayload) => {
+      const updated = await api.tasks.update(payload)
+      if (updated) {
+        setGroups((prev) =>
+          prev
+            .map((g) => ({
+              ...g,
+              tasks: g.tasks.map((t) => (t.id === updated.id ? updated : t))
+            }))
+            .filter((g) => g.tasks.length > 0)
+        )
+      }
+      return updated
+    },
+    [api]
+  )
+
+  const deleteTask = useCallback(async (id: number) => {
+    await api.tasks.delete(id)
+    setGroups((prev) =>
+      prev
+        .map((g) => ({ ...g, tasks: g.tasks.filter((t) => t.id !== id) }))
+        .filter((g) => g.tasks.length > 0)
+    )
+  }, [api])
+
+  const pullToToday = useCallback(async (id: number) => {
+    const task = await api.tasks.pullToToday(id)
+    if (task) {
+      setGroups((prev) =>
+        prev
+          .map((g) => ({ ...g, tasks: g.tasks.filter((t) => t.id !== id) }))
+          .filter((g) => g.tasks.length > 0)
+      )
+    }
+    return task
+  }, [api])
+
+  return { groups, loading, updateTask, deleteTask, pullToToday, reload: load }
+}

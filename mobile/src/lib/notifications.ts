@@ -16,7 +16,7 @@ import type { Task, AppSettings } from '@shared/types'
 
 const ALARM_PREFIX = 'alarm-'
 const CHECKIN_PREFIX = 'checkin-'
-const EOD_ID = 'eod'
+const EOD_PREFIX = 'eod-'
 const CHECKIN_CATEGORY = 'CHECKIN'
 const ANDROID_CHANNEL = 'default'
 
@@ -111,19 +111,30 @@ export async function rescheduleCheckIns(): Promise<void> {
 // ── End-of-day reminder ───────────────────────────────────────────────────
 
 export async function scheduleEndOfDay(settings: AppSettings): Promise<void> {
-  await cancel(EOD_ID)
+  try {
+    const pending = await Notifications.getAllScheduledNotificationsAsync()
+    await Promise.all(
+      pending
+        .filter((n) => n.identifier.startsWith(EOD_PREFIX) || n.identifier === 'eod')
+        .map((n) => cancel(n.identifier))
+    )
+  } catch { /* ignore */ }
 
   const [h, m] = settings.endOfDayTime.split(':').map(Number)
-  await Notifications.scheduleNotificationAsync({
-    identifier: EOD_ID,
-    content: {
-      title: 'Taskify — End of Day',
-      body: 'Time to wrap up or carry over your open tasks.',
-      data: { type: 'eod' }
-    },
-    // Daily repeating trigger at the configured hour/minute.
-    trigger: { hour: h, minute: m, repeats: true, ...androidChannel() }
-  })
+  await Promise.all(
+    settings.workDays.map((day) =>
+      Notifications.scheduleNotificationAsync({
+        identifier: `${EOD_PREFIX}${day}`,
+        content: {
+          title: 'Taskify — End of Day',
+          body: 'Time to wrap up or carry over your open tasks.',
+          data: { type: 'eod' }
+        },
+        // Expo calendar weekdays are 1-7, where 1 is Sunday.
+        trigger: { weekday: day + 1, hour: h, minute: m, repeats: true, ...androidChannel() }
+      })
+    )
+  )
 }
 
 // ── Handle notification tap actions ──────────────────────────────────────
