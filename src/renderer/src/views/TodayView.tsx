@@ -149,11 +149,12 @@ export default function TodayView({ onNavigateToTemplate }: Props) {
                 tasks={filteredTasks}
                 onToggle={handleToggle}
                 onUpdate={handleUpdate}
-                onDelete={deleteTask}
-                onReorder={reorderTasks}
-                onNavigateToTemplate={onNavigateToTemplate}
-              />
-            </div>
+              onDelete={deleteTask}
+              onReorder={reorderTasks}
+              onNavigateToTemplate={onNavigateToTemplate}
+              collapsibleDone
+            />
+          </div>
 
             {historyGroups.length > 0 && (
               <div className="mt-2">

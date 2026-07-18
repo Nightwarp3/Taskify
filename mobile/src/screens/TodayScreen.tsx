@@ -6,7 +6,6 @@ import type { Task } from '@shared/types'
 import { useTasks, useWeekHistoryTasks } from '../hooks/useTasks'
 import { localDateString, formatLongDate, parseJsonArray } from '../lib/format'
 import TaskItem from '../components/TaskItem'
-import { DoneDivider } from '../components/TaskList'
 import OverdueTasks from '../components/OverdueTasks'
 import AddTaskModal from '../components/AddTaskModal'
 
@@ -22,6 +21,7 @@ export default function TodayScreen({ onNavigateToTemplate }: { onNavigateToTemp
   } = useWeekHistoryTasks(today)
   const [activeFilter, setActiveFilter] = useState<string | null>(null)
   const [showModal, setShowModal] = useState(false)
+  const [showDone, setShowDone] = useState(false)
 
   const allTags = useMemo(() => {
     const set = new Set<string>()
@@ -98,10 +98,30 @@ export default function TodayScreen({ onNavigateToTemplate }: { onNavigateToTemp
     <View className="pb-24">
       {complete.length > 0 && (
         <View>
-          <DoneDivider count={complete.length} />
-          {complete.map((task) => (
-            <TaskItem key={task.id} task={task} onToggle={handleToggle} onUpdate={handleUpdate}
-              onDelete={deleteTask} onNavigateToTemplate={onNavigateToTemplate} />
+          <Pressable
+            onPress={() => setShowDone((v) => !v)}
+            className="px-3 pt-3 pb-1 flex-row items-center gap-2"
+            accessibilityRole="button"
+            accessibilityState={{ expanded: showDone }}
+          >
+            <View className="flex-1 h-px bg-rim" />
+            <Text className="text-xs text-ghost font-medium uppercase tracking-wider">
+              Done ({complete.length})
+            </Text>
+            <Text className="text-xs text-ghost font-medium leading-none">
+              {showDone ? '▲' : '▼'}
+            </Text>
+            <View className="flex-1 h-px bg-rim" />
+          </Pressable>
+          {showDone && complete.map((task) => (
+            <TaskItem
+              key={task.id}
+              task={task}
+              onToggle={handleToggle}
+              onUpdate={handleUpdate}
+              onDelete={deleteTask}
+              onNavigateToTemplate={onNavigateToTemplate}
+            />
           ))}
         </View>
       )}

@@ -19,6 +19,7 @@ interface Props {
   onNavigateToTemplate?: (templateId: number) => void
   readonly?: boolean
   emptyMessage?: string
+  collapsibleDone?: boolean
 }
 
 export default function TaskList({
@@ -29,8 +30,10 @@ export default function TaskList({
   onReorder,
   onNavigateToTemplate,
   readonly,
-  emptyMessage = 'No tasks yet — add one above'
+  emptyMessage = 'No tasks yet — add one above',
+  collapsibleDone = false
 }: Props) {
+  const [showDone, setShowDone] = useState(false)
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
   )
@@ -80,15 +83,33 @@ export default function TaskList({
       </DndContext>
 
       {complete.length > 0 && (
-        <>
-          <div className="px-3 pt-3 pb-1 flex items-center gap-2">
-            <div className="flex-1 h-px bg-rim" />
-            <span className="text-xs text-ghost font-medium uppercase tracking-wider">
-              Done ({complete.length})
-            </span>
-            <div className="flex-1 h-px bg-rim" />
-          </div>
-          {complete.map((task) => (
+        <div className="pt-3">
+          {collapsibleDone ? (
+            <button
+              type="button"
+              onClick={() => setShowDone((v) => !v)}
+              className="w-full px-3 pb-1 flex items-center gap-2 text-left"
+              aria-expanded={showDone}
+            >
+              <div className="flex-1 h-px bg-rim" />
+              <span className="text-xs text-ghost font-medium uppercase tracking-wider">
+                Done ({complete.length})
+              </span>
+              <span className="text-xs text-ghost font-medium leading-none">
+                {showDone ? '▲' : '▼'}
+              </span>
+              <div className="flex-1 h-px bg-rim" />
+            </button>
+          ) : (
+            <div className="px-3 pt-3 pb-1 flex items-center gap-2">
+              <div className="flex-1 h-px bg-rim" />
+              <span className="text-xs text-ghost font-medium uppercase tracking-wider">
+                Done ({complete.length})
+              </span>
+              <div className="flex-1 h-px bg-rim" />
+            </div>
+          )}
+          {(!collapsibleDone || showDone) && complete.map((task) => (
             <TaskItem
               key={task.id}
               task={task}
@@ -99,7 +120,7 @@ export default function TaskList({
               readonly={readonly}
             />
           ))}
-        </>
+        </div>
       )}
     </div>
   )

@@ -106,6 +106,19 @@ test('un-completes a task by clicking its checkbox again', async () => {
   await expect(row.locator('span.line-through')).not.toBeVisible()
 })
 
+test('collapses and expands the Done section on Today', async () => {
+  await addTask('Collapse me')
+  const row = taskRow('Collapse me')
+  await row.locator('button.rounded-full').first().click()
+
+  const doneToggle = page.getByRole('button', { name: /Done \(1\)/ })
+  await expect(doneToggle).toBeVisible()
+  await expect(page.getByText('Collapse me')).not.toBeVisible()
+
+  await doneToggle.click()
+  await expect(page.getByText('Collapse me')).toBeVisible()
+})
+
 test('deletes a task via the delete button', async () => {
   await addTask('Delete me please')
   const row = taskRow('Delete me please')
