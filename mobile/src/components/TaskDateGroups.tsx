@@ -46,7 +46,7 @@ function TaskSection({
             task={task}
             onToggle={onToggle}
             onUpdate={onUpdate}
-            onDelete={onDelete ?? (() => {})}
+            onDelete={onDelete}
             readonly={readonly}
           />
           {!task.completed && onPullToToday && (
