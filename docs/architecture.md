@@ -389,11 +389,11 @@ On startup and on every refresh, `tasks:listOverdue` scans all `tasksByDate` ent
 
 | Surface | File |
 |---|---|
-| System tray | `resources/taskify-outline-original.png` |
-| App header (renderer) | `resources/taskify-solid-original.png` (Vite-bundled) |
-| BrowserWindow / taskbar | `resources/taskify-solid-original.png` |
-| Windows packager (`.ico`) | `resources/taskify-solid-original.png` |
-| macOS packager (`.icns`) | `resources/taskify-solid-original.png` |
+| System tray | `resources/outline/Square44x44Logo.targetsize-16.png` |
+| App header (renderer) | `src/renderer/src/assets/Square150x150Logo.scale-400.png` (Vite-bundled) |
+| BrowserWindow / taskbar | `resources/logo-check/Square44x44Logo.targetsize-256.png` |
+| Windows packager (`.ico`) | `resources/logo-check/Square44x44Logo.targetsize-256.png` |
+| macOS packager (`.icns`) | `resources/logo-check/Square44x44Logo.targetsize-256.png` |
 
 ---
 
@@ -423,7 +423,8 @@ src/
       index.css     Tailwind + CSS token definitions
       env.d.ts      window.taskify type declaration
       assets/
-        taskify-solid-original.png
+        Square150x150Logo.scale-400.png
+        SplashScreen.scale-400.png
       hooks/
         useTasks.ts   useTasks(), useOverdueTasks()
       components/
@@ -441,11 +442,9 @@ src/
     types.ts        Interfaces shared across all processes
 
 resources/
-  taskify-solid-original.png    App icon (3D blue bubble)
-  taskify-outline-original.png  Tray icon (blue outline circle)
-  taskify-logo-original.png     Full wordmark
-  taskify-logo-compact-original.png  Compact wordmark
-  icon.ico / icon.icns / icon.png    Legacy packager icons
+  flat/        Flat app icon family and Windows scale assets
+  logo-check/  Primary app icon family and Windows scale assets
+  outline/     Tray-friendly outline icon family and Windows scale assets
 
 docs/
   architecture.md   This file

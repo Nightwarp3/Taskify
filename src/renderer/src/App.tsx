@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import appLogo from './assets/Square44x44Logo.targetsize-48.png'
+import appLogo from './assets/Square150x150Logo.scale-400.png'
 import TodayView from './views/TodayView'
 import HistoryView from './views/HistoryView'
 import SettingsView from './views/SettingsView'

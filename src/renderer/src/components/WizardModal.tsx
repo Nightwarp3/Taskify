@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import appLogo from '../assets/taskify-solid-original.png'
+import appLogo from '../assets/SplashScreen.scale-400.png'
 import type { AppSettings } from '../../../shared/types'
 import WorkdaySelector, { firstSelectedDay } from './WorkdaySelector'
 
@@ -91,7 +91,7 @@ export default function WizardModal({ onComplete, onThemeChange, currentTheme }:
         {/* Step 0 — Welcome */}
         {step === 0 && (
           <div className="text-center">
-            <img src={appLogo} className="w-16 h-16 mx-auto mb-4 rounded-xl" alt="Taskify" />
+            <img src={appLogo} className="h-16 mx-auto mb-4 rounded-xl" alt="Taskify" />
             <h2 className="text-base font-semibold text-ink mb-2">Welcome to Taskify</h2>
             <p className="text-xs text-muted mb-5">
               A simple daily task manager that keeps you focused and checks in while you work.
