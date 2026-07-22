@@ -27,7 +27,7 @@ function createWindow(): BrowserWindow {
     autoHideMenuBar: true,
     frame: true,
     title: 'Taskify',
-    icon: path.join(__dirname, '../../resources/Square44x44Logo.targetsize-256.png'),
+    icon: path.join(__dirname, '../../resources/outline/Square44x44Logo.targetsize-256.png'),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false
@@ -241,7 +241,7 @@ function handleMcpBridgeRequest(req: { id: string; type: string; payload: unknow
 }
 
 function createTray(): void {
-  const iconPath = path.join(__dirname, '../../resources/Square44x44Logo.targetsize-16.png')
+  const iconPath = path.join(__dirname, '../../resources/outline/Square44x44Logo.targetsize-16.png')
   const icon = nativeImage.createFromPath(iconPath)
   tray = new Tray(icon.isEmpty() ? nativeImage.createEmpty() : icon)
   tray.setToolTip('Taskify')
