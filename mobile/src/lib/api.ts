@@ -45,6 +45,7 @@ export interface TaskifyAPI {
     listByDate(date: string): Promise<Task[]>
     listOverdue(today: string): Promise<OverdueDateGroup[]>
     listWeekHistory(today: string): Promise<TaskDateGroup[]>
+    listHistoricalIncomplete(today: string): Promise<TaskDateGroup[]>
     listHistoryRange(startDate: string, endDate: string): Promise<TaskDateGroup[]>
     listByProject(projectId: number): Promise<Task[]>
     add(payload: TaskAddPayload): Promise<Task>
@@ -52,6 +53,7 @@ export interface TaskifyAPI {
     delete(id: number): Promise<void>
     reorder(payload: TaskReorderPayload): Promise<void>
     pullToToday(id: number): Promise<Task | null>
+    pullToTodayMany(ids: number[]): Promise<Task[]>
   }
   projects: {
     list(): Promise<Project[]>
@@ -103,6 +105,7 @@ export const taskify: TaskifyAPI = {
     listByDate: (date) => taskQueries.listByDate(date),
     listOverdue: (today) => taskQueries.listOverdue(today),
     listWeekHistory: (today) => taskQueries.listWeekHistory(today),
+    listHistoricalIncomplete: (today) => taskQueries.listHistoricalIncomplete(today),
     listHistoryRange: (startDate, endDate) => taskQueries.listHistoryRange(startDate, endDate),
     listByProject: (projectId) => taskQueries.listByProject(projectId),
 
@@ -161,7 +164,21 @@ export const taskify: TaskifyAPI = {
       const today = localDateString()
       const task = await taskQueries.pullToToday(id, today)
       try { if (task?.scheduledTime) await scheduleTaskAlarm(task); await rescheduleCheckIns() } catch {}
+      if (task) emit('tasks:refreshed')
       return task
+    },
+
+    pullToTodayMany: async (ids) => {
+      const today = localDateString()
+      const tasks = await taskQueries.pullToTodayMany(ids, today)
+      try {
+        for (const task of tasks) {
+          if (task.scheduledTime) await scheduleTaskAlarm(task)
+        }
+        if (tasks.length > 0) await rescheduleCheckIns()
+      } catch {}
+      if (tasks.length > 0) emit('tasks:refreshed')
+      return tasks
     }
   },
 

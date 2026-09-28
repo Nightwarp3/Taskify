@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { AppSettings } from '../../../shared/types'
-import { useHistoryRangeTasks } from '../hooks/useTasks'
+import { useHistoricalIncompleteTasks } from '../hooks/useTasks'
 import TaskDateGroups from './TaskDateGroups'
 
 function localDateString(offset = 0): string {
@@ -14,17 +14,16 @@ export default function WeeklyRecapModal() {
   const [settings, setSettings] = useState<AppSettings | null>(null)
   const [dismissed, setDismissed] = useState(false)
   const [visibleIds, setVisibleIds] = useState<Set<number> | null>(null)
-  const { groups, loading, updateTask, pullToToday } = useHistoryRangeTasks(localDateString(-7), localDateString(-1))
+  const { groups, loading, updateTask, pullToToday, pullAllToToday } = useHistoricalIncompleteTasks(today)
 
   useEffect(() => {
     window.taskify.settings.get().then(setSettings)
   }, [])
 
-  const shouldShowToday = useMemo(() => {
-    if (!settings || dismissed) return false
-    const day = new Date(today + 'T00:00:00').getDay()
-    return day === settings.startOfWeekDay && settings.weeklyRecapDismissedDate !== today
-  }, [dismissed, settings, today])
+  const shouldShowToday = useMemo(
+    () => !!settings && !dismissed && settings.weeklyRecapDismissedDate !== today,
+    [dismissed, settings, today]
+  )
 
   useEffect(() => {
     if (!shouldShowToday || loading || visibleIds) return
@@ -56,6 +55,15 @@ export default function WeeklyRecapModal() {
       const next = new Set(prev ?? [])
       next.delete(id)
       return next
+    })
+  }
+
+  const moveAllToToday = async () => {
+    const moved = await pullAllToToday()
+    const movedIds = new Set(moved.map((task) => task.id))
+    setVisibleIds((prev) => {
+      if (!prev) return prev
+      return new Set([...prev].filter((id) => !movedIds.has(id)))
     })
   }
 
@@ -96,6 +104,7 @@ export default function WeeklyRecapModal() {
             onToggle={toggleRecapTask}
             onUpdate={(id, fields) => updateTask({ id, ...fields })}
             onPullToToday={moveToToday}
+            onPullAllToToday={moveAllToToday}
             collapseWhenNoIncomplete={false}
           />
         </div>

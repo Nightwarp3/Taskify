@@ -7,9 +7,10 @@ interface Props {
   onUpdate: (id: number, fields: { title?: string; notes?: string; links?: string[]; tags?: string[] }) => void
   onDelete: (id: number) => void
   onPullToToday?: (id: number) => void
+  onPullAllToToday?: () => void
 }
 
-export default function OverdueTasks({ groups, onToggle, onUpdate, onDelete, onPullToToday }: Props) {
+export default function OverdueTasks({ groups, onToggle, onUpdate, onDelete, onPullToToday, onPullAllToToday }: Props) {
   return (
     <TaskDateGroups
       title="This week"
@@ -18,6 +19,7 @@ export default function OverdueTasks({ groups, onToggle, onUpdate, onDelete, onP
       onUpdate={onUpdate}
       onDelete={onDelete}
       onPullToToday={onPullToToday}
+      onPullAllToToday={onPullAllToToday}
     />
   )
 }

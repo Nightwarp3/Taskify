@@ -172,7 +172,96 @@ export function useWeekHistoryTasks(today: string) {
     return task
   }, [])
 
-  return { groups, updateTask, deleteTask, pullToToday, reload: load }
+  const pullAllToToday = useCallback(async () => {
+    const ids = groups.flatMap((group) => group.tasks).filter((task) => !task.completed).map((task) => task.id)
+    const moved = await window.taskify.tasks.pullToTodayMany(ids)
+    if (moved.length > 0) {
+      const movedIds = new Set(moved.map((task) => task.id))
+      setGroups((prev) =>
+        prev
+          .map((g) => ({ ...g, tasks: g.tasks.filter((t) => !movedIds.has(t.id)) }))
+          .filter((g) => g.tasks.length > 0)
+      )
+    }
+    return moved
+  }, [groups])
+
+  return { groups, updateTask, deleteTask, pullToToday, pullAllToToday, reload: load }
+}
+
+export function useHistoricalIncompleteTasks(today: string) {
+  const [groups, setGroups] = useState<TaskDateGroup[]>([])
+  const [loading, setLoading] = useState(true)
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    const result = await window.taskify.tasks.listHistoricalIncomplete(today)
+    setGroups(result)
+    setLoading(false)
+  }, [today])
+
+  useEffect(() => {
+    load()
+    const off = window.taskify.on('tasks:refreshed', load)
+    return off
+  }, [load])
+
+  const updateTask = useCallback(
+    async (payload: Parameters<typeof window.taskify.tasks.update>[0]) => {
+      const updated = await window.taskify.tasks.update(payload)
+      if (updated) {
+        setGroups((prev) =>
+          prev
+            .map((g) => ({
+              ...g,
+              tasks: g.tasks
+                .map((t) => (t.id === updated.id ? updated : t))
+                .filter((t) => !t.completed)
+            }))
+            .filter((g) => g.tasks.length > 0)
+        )
+      }
+      return updated
+    },
+    []
+  )
+
+  const deleteTask = useCallback(async (id: number) => {
+    await window.taskify.tasks.delete(id)
+    setGroups((prev) =>
+      prev
+        .map((g) => ({ ...g, tasks: g.tasks.filter((t) => t.id !== id) }))
+        .filter((g) => g.tasks.length > 0)
+    )
+  }, [])
+
+  const pullToToday = useCallback(async (id: number) => {
+    const task = await window.taskify.tasks.pullToToday(id)
+    if (task) {
+      setGroups((prev) =>
+        prev
+          .map((g) => ({ ...g, tasks: g.tasks.filter((t) => t.id !== id) }))
+          .filter((g) => g.tasks.length > 0)
+      )
+    }
+    return task
+  }, [])
+
+  const pullAllToToday = useCallback(async () => {
+    const ids = groups.flatMap((group) => group.tasks).map((task) => task.id)
+    const moved = await window.taskify.tasks.pullToTodayMany(ids)
+    if (moved.length > 0) {
+      const movedIds = new Set(moved.map((task) => task.id))
+      setGroups((prev) =>
+        prev
+          .map((g) => ({ ...g, tasks: g.tasks.filter((t) => !movedIds.has(t.id)) }))
+          .filter((g) => g.tasks.length > 0)
+      )
+    }
+    return moved
+  }, [groups])
+
+  return { groups, loading, updateTask, deleteTask, pullToToday, pullAllToToday, reload: load }
 }
 
 export function useHistoryRangeTasks(startDate: string, endDate: string) {

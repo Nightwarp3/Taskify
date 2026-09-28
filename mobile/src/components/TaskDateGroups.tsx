@@ -10,6 +10,7 @@ interface Props {
   onUpdate: (id: number, fields: { title?: string; notes?: string; links?: string[]; tags?: string[] }) => void
   onDelete?: (id: number) => void
   onPullToToday?: (id: number) => void
+  onPullAllToToday?: () => void
   readonly?: boolean
   emptyMessage?: string
   collapseWhenNoIncomplete?: boolean
@@ -184,12 +185,21 @@ export default function TaskDateGroups({ title, groups, emptyMessage, ...rest }:
 
   return (
     <View className="px-4 pb-2">
-      {title && (
+      {(title || rest.onPullAllToToday) && (
         <View className="flex-row items-center gap-2 mb-2 mt-1">
-          <Text className="text-xs font-semibold text-muted uppercase tracking-wider">{title}</Text>
-          <View className="bg-well px-1.5 py-0.5 rounded-pill">
-            <Text className="text-xs text-muted font-medium">{incompleteTotal}</Text>
-          </View>
+          {title && (
+            <>
+              <Text className="text-xs font-semibold text-muted uppercase tracking-wider">{title}</Text>
+              <View className="bg-well px-1.5 py-0.5 rounded-pill">
+                <Text className="text-xs text-muted font-medium">{incompleteTotal}</Text>
+              </View>
+            </>
+          )}
+          {rest.onPullAllToToday && incompleteTotal > 0 && (
+            <Pressable onPress={rest.onPullAllToToday} className="ml-auto">
+              <Text className="text-xs font-medium text-accent">Move all to today</Text>
+            </Pressable>
+          )}
         </View>
       )}
       {groups.map((group) => (

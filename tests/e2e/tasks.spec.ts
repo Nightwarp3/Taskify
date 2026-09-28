@@ -49,9 +49,10 @@ test.afterAll(async () => {
   fs.rmSync(dataDir, { recursive: true, force: true })
 })
 
-// Type into the task input and submit with Enter
+// Open the task modal, type a title, and submit with Enter.
 async function addTask(title: string) {
-  const input = page.getByPlaceholder('Add a task… (#tag to label)')
+  await page.getByTitle('Add task').click()
+  const input = page.getByPlaceholder('What needs doing? (#tag to label)')
   await input.fill(title)
   await input.press('Enter')
 }
@@ -65,7 +66,7 @@ function taskRow(title: string) {
 
 test('app launches and shows Today tab by default', async () => {
   await expect(page.getByRole('button', { name: 'Today' })).toBeVisible()
-  await expect(page.getByPlaceholder('Add a task… (#tag to label)')).toBeVisible()
+  await expect(page.getByTitle('Add task')).toBeVisible()
 })
 
 test('creates a task via keyboard Enter', async () => {
@@ -74,9 +75,10 @@ test('creates a task via keyboard Enter', async () => {
 })
 
 test('creates a task by clicking the Add button', async () => {
-  const input = page.getByPlaceholder('Add a task… (#tag to label)')
+  await page.getByTitle('Add task').click()
+  const input = page.getByPlaceholder('What needs doing? (#tag to label)')
   await input.fill('Click-add task')
-  await page.getByRole('button', { name: 'Add' }).click()
+  await page.getByRole('button', { name: 'Add Task', exact: true }).click()
   await expect(page.getByText('Click-add task')).toBeVisible()
 })
 
@@ -94,6 +96,9 @@ test('completes a task by clicking its checkbox', async () => {
   const checkbox = row.locator('button.rounded-full').first()
   await checkbox.click()
 
+  const doneToggle = page.getByRole('button', { name: /Done \(\d+\)/ })
+  await expect(doneToggle).toBeVisible()
+  if (await doneToggle.getAttribute('aria-expanded') !== 'true') await doneToggle.click()
   await expect(row.locator('span.line-through')).toBeVisible()
 })
 
@@ -103,6 +108,9 @@ test('un-completes a task by clicking its checkbox again', async () => {
   const checkbox = row.locator('button.rounded-full').first()
 
   await checkbox.click()
+  const doneToggle = page.getByRole('button', { name: /Done \(\d+\)/ })
+  await expect(doneToggle).toBeVisible()
+  if (await doneToggle.getAttribute('aria-expanded') !== 'true') await doneToggle.click()
   await expect(row.locator('span.line-through')).toBeVisible()
 
   await checkbox.click()
@@ -114,8 +122,9 @@ test('collapses and expands the Done section on Today', async () => {
   const row = taskRow('Collapse me')
   await row.locator('button.rounded-full').first().click()
 
-  const doneToggle = page.getByRole('button', { name: /Done \(1\)/ })
+  const doneToggle = page.getByRole('button', { name: /Done \(\d+\)/ })
   await expect(doneToggle).toBeVisible()
+  if (await doneToggle.getAttribute('aria-expanded') === 'true') await doneToggle.click()
   await expect(page.getByText('Collapse me')).not.toBeVisible()
 
   await doneToggle.click()

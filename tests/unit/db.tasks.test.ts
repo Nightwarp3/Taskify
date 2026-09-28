@@ -294,6 +294,18 @@ describe('pullToToday()', () => {
     taskQueries.pullToToday(t.id, TODAY)
     expect(taskQueries.listByDate(TODAY).map((task) => task.id)).toEqual([t.id])
   })
+
+  it('moves a batch of tasks without duplicating ids', () => {
+    const first = taskQueries.add('First carry over', YESTERDAY)
+    const second = taskQueries.add('Second carry over', '2026-06-17')
+
+    const moved = taskQueries.pullToTodayMany([first.id, second.id, first.id], TODAY)
+
+    expect(moved.map((task) => task.id)).toEqual([first.id, second.id])
+    expect(taskQueries.listByDate(YESTERDAY)).toHaveLength(0)
+    expect(taskQueries.listByDate('2026-06-17')).toHaveLength(0)
+    expect(taskQueries.listByDate(TODAY).map((task) => task.id)).toEqual([first.id, second.id])
+  })
 })
 
 describe('listOverdue()', () => {
@@ -348,6 +360,33 @@ describe('listWeekHistory()', () => {
     taskQueries.add('Backlog', YESTERDAY, { backlog: true, projectId: 1 })
 
     expect(taskQueries.listWeekHistory(TODAY)).toEqual([])
+  })
+})
+
+describe('listHistoricalIncomplete()', () => {
+  it('returns incomplete tasks from all dates before the current week', () => {
+    taskQueries.add('Previous week', '2026-06-12')
+    const completed = taskQueries.add('Previous week done', '2026-06-12')
+    taskQueries.update(completed.id, { completed: true })
+    taskQueries.add('Current week', '2026-06-15')
+    taskQueries.add('Today', TODAY)
+    taskQueries.add('Backlog history', '2026-06-12', { backlog: true, projectId: 1 })
+
+    const groups = taskQueries.listHistoricalIncomplete(TODAY)
+
+    expect(groups.map((group) => group.date)).toEqual(['2026-06-12'])
+    expect(groups[0].tasks.map((task) => task.title)).toEqual(['Previous week'])
+  })
+
+  it('respects a configured non-Monday week start', async () => {
+    const db = await import('../../src/main/db')
+    db.settingsQueries.set('startOfWeekDay', 4)
+    taskQueries.add('Before Thursday', '2026-06-17')
+    taskQueries.add('Current week', '2026-06-18')
+
+    const groups = taskQueries.listHistoricalIncomplete(TODAY)
+
+    expect(groups.map((group) => group.date)).toEqual(['2026-06-17'])
   })
 })
 

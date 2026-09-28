@@ -25,6 +25,8 @@ const api = {
       ipcRenderer.invoke('tasks:listOverdue', today),
     listWeekHistory: (today: string): Promise<TaskDateGroup[]> =>
       ipcRenderer.invoke('tasks:listWeekHistory', today),
+    listHistoricalIncomplete: (today: string): Promise<TaskDateGroup[]> =>
+      ipcRenderer.invoke('tasks:listHistoricalIncomplete', today),
     listHistoryRange: (startDate: string, endDate: string): Promise<TaskDateGroup[]> =>
       ipcRenderer.invoke('tasks:listHistoryRange', startDate, endDate),
     listByProject: (projectId: number): Promise<Task[]> =>
@@ -38,7 +40,9 @@ const api = {
     reorder: (payload: TaskReorderPayload): Promise<void> =>
       ipcRenderer.invoke('tasks:reorder', payload),
     pullToToday: (id: number): Promise<Task | null> =>
-      ipcRenderer.invoke('tasks:pullToToday', id)
+      ipcRenderer.invoke('tasks:pullToToday', id),
+    pullToTodayMany: (ids: number[]): Promise<Task[]> =>
+      ipcRenderer.invoke('tasks:pullToTodayMany', ids)
   },
   projects: {
     list: (): Promise<Project[]> =>

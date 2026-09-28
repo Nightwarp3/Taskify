@@ -47,6 +47,10 @@ export function registerIpcHandlers(getWindow: () => BrowserWindow | null): void
     return taskQueries.listWeekHistory(today)
   })
 
+  ipcMain.handle('tasks:listHistoricalIncomplete', (_, today: string) => {
+    return taskQueries.listHistoricalIncomplete(today)
+  })
+
   ipcMain.handle('tasks:listHistoryRange', (_, startDate: string, endDate: string) => {
     return taskQueries.listHistoryRange(startDate, endDate)
   })
@@ -127,7 +131,21 @@ export function registerIpcHandlers(getWindow: () => BrowserWindow | null): void
     const task = taskQueries.pullToToday(id, today)
     if (task?.scheduledTime) scheduleTaskAlarm(task, getWindow())
     rescheduleCheckIns(getWindow())
+    if (task) getWindow()?.webContents.send('tasks:refreshed')
     return task
+  })
+
+  ipcMain.handle('tasks:pullToTodayMany', (_, ids: number[]) => {
+    const today = localDateString()
+    const tasks = taskQueries.pullToTodayMany(ids, today)
+    for (const task of tasks) {
+      if (task.scheduledTime) scheduleTaskAlarm(task, getWindow())
+    }
+    if (tasks.length > 0) {
+      rescheduleCheckIns(getWindow())
+      getWindow()?.webContents.send('tasks:refreshed')
+    }
+    return tasks
   })
 
   // ── Projects ──────────────────────────────────────────────────────────────
