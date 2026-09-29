@@ -132,6 +132,24 @@ export const taskQueries = {
     return this.listHistoryRange(start, offsetDate(today, -1))
   },
 
+  listHistoricalIncomplete(today: string): TaskDateGroup[] {
+    const start = weekStart(today)
+    const tasksByDate = store.get('tasksByDate')
+    const tasks = store.get('tasks')
+    const groups: TaskDateGroup[] = []
+
+    for (const [date, ids] of Object.entries(tasksByDate)) {
+      if (date >= start) continue
+      const incompleteTasks = (ids as number[])
+        .map((id) => tasks[id])
+        .filter((t) => t && !t.completed && !t.backlog)
+        .map(toTask)
+      if (incompleteTasks.length > 0) groups.push({ date, tasks: incompleteTasks })
+    }
+
+    return groups.sort((a, b) => b.date.localeCompare(a.date))
+  },
+
   listHistoryRange(startDate: string, endDate: string): TaskDateGroup[] {
     const tasksByDate = store.get('tasksByDate')
     const tasks = store.get('tasks')
@@ -259,6 +277,15 @@ export const taskQueries = {
     store.set(`tasks.${id}` as never, updated as never)
     store.set(`tasksByDate.${today}` as never, [...order, id] as never)
     return toTask(updated)
+  },
+
+  pullToTodayMany(ids: number[], today: string): Task[] {
+    const moved: Task[] = []
+    for (const id of new Set(ids)) {
+      const task = this.pullToToday(id, today)
+      if (task) moved.push(task)
+    }
+    return moved
   },
 
   getById(id: number): Task | null {

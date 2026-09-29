@@ -17,7 +17,8 @@ export default function TodayScreen({ onNavigateToTemplate }: { onNavigateToTemp
     groups: historyGroups,
     updateTask: updateHistory,
     deleteTask: deleteHistory,
-    pullToToday
+    pullToToday,
+    pullAllToToday
   } = useWeekHistoryTasks(today)
   const [activeFilter, setActiveFilter] = useState<string | null>(null)
   const [showModal, setShowModal] = useState(false)
@@ -139,6 +140,7 @@ export default function TodayScreen({ onNavigateToTemplate }: { onNavigateToTemp
             onUpdate={(id, fields) => updateHistory({ id, ...fields })}
             onDelete={deleteHistory}
             onPullToToday={handlePullToToday}
+            onPullAllToToday={pullAllToToday}
           />
         </View>
       )}

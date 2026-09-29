@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Modal, View, Text, Pressable, ScrollView } from 'react-native'
 import type { AppSettings } from '@shared/types'
 import { useTaskifyApi } from '../providers/TaskifyProvider'
-import { useHistoryRangeTasks } from '../hooks/useTasks'
+import { useHistoricalIncompleteTasks } from '../hooks/useTasks'
 import TaskDateGroups from './TaskDateGroups'
 
 function localDateString(offset = 0): string {
@@ -17,17 +17,16 @@ export default function WeeklyRecapModal({ disabled }: { disabled?: boolean }) {
   const [settings, setSettings] = useState<AppSettings | null>(null)
   const [dismissed, setDismissed] = useState(false)
   const [visibleIds, setVisibleIds] = useState<Set<number> | null>(null)
-  const { groups, loading, updateTask, pullToToday } = useHistoryRangeTasks(localDateString(-7), localDateString(-1))
+  const { groups, loading, updateTask, pullToToday, pullAllToToday } = useHistoricalIncompleteTasks(today)
 
   useEffect(() => {
     api.settings.get().then(setSettings)
   }, [api])
 
-  const shouldShowToday = useMemo(() => {
-    if (!settings || dismissed || disabled) return false
-    const day = new Date(today + 'T00:00:00').getDay()
-    return day === settings.startOfWeekDay && settings.weeklyRecapDismissedDate !== today
-  }, [disabled, dismissed, settings, today])
+  const shouldShowToday = useMemo(
+    () => !!settings && !dismissed && !disabled && settings.weeklyRecapDismissedDate !== today,
+    [disabled, dismissed, settings, today]
+  )
 
   useEffect(() => {
     if (!shouldShowToday || loading || visibleIds) return
@@ -66,6 +65,15 @@ export default function WeeklyRecapModal({ disabled }: { disabled?: boolean }) {
     removeVisibleId(id)
   }
 
+  const moveAllToToday = async () => {
+    const moved = await pullAllToToday()
+    const movedIds = new Set(moved.map((task) => task.id))
+    setVisibleIds((prev) => {
+      if (!prev) return prev
+      return new Set([...prev].filter((id) => !movedIds.has(id)))
+    })
+  }
+
   const toggleRecapTask = async (id: number, completed: boolean) => {
     await updateTask({ id, completed })
     if (completed) removeVisibleId(id)
@@ -94,6 +102,7 @@ export default function WeeklyRecapModal({ disabled }: { disabled?: boolean }) {
               onToggle={toggleRecapTask}
               onUpdate={(id, fields) => updateTask({ id, ...fields })}
               onPullToToday={moveToToday}
+              onPullAllToToday={moveAllToToday}
               collapseWhenNoIncomplete={false}
             />
           </ScrollView>

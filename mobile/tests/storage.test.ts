@@ -117,6 +117,42 @@ describe('taskQueries history and carry-over', () => {
     expect((await storage.taskQueries.getById(task.id))?.date).toBe('2026-06-19')
   })
 
+  it('moves a batch of tasks without duplicating ids', async () => {
+    const first = await storage.taskQueries.add('First carry over', '2026-06-18')
+    const second = await storage.taskQueries.add('Second carry over', '2026-06-17')
+
+    const moved = await storage.taskQueries.pullToTodayMany([first.id, second.id, first.id], '2026-06-19')
+
+    expect(moved.map((task) => task.id)).toEqual([first.id, second.id])
+    expect(await storage.taskQueries.listByDate('2026-06-18')).toHaveLength(0)
+    expect(await storage.taskQueries.listByDate('2026-06-17')).toHaveLength(0)
+    expect((await storage.taskQueries.listByDate('2026-06-19')).map((task) => task.id)).toEqual([first.id, second.id])
+  })
+
+  it('lists incomplete tasks from all dates before the current week', async () => {
+    await storage.taskQueries.add('Previous week', '2026-06-12')
+    const completed = await storage.taskQueries.add('Previous week done', '2026-06-12')
+    await storage.taskQueries.update(completed.id, { completed: true })
+    await storage.taskQueries.add('Current week', '2026-06-15')
+    await storage.taskQueries.add('Today', '2026-06-19')
+    await storage.taskQueries.add('Backlog history', '2026-06-12', { backlog: true, projectId: 1 })
+
+    const groups = await storage.taskQueries.listHistoricalIncomplete('2026-06-19')
+
+    expect(groups.map((group) => group.date)).toEqual(['2026-06-12'])
+    expect(groups[0].tasks.map((task) => task.title)).toEqual(['Previous week'])
+  })
+
+  it('respects a configured non-Monday week start for historical tasks', async () => {
+    await storage.settingsQueries.set('startOfWeekDay', 4)
+    await storage.taskQueries.add('Before Thursday', '2026-06-17')
+    await storage.taskQueries.add('Current week', '2026-06-18')
+
+    const groups = await storage.taskQueries.listHistoricalIncomplete('2026-06-19')
+
+    expect(groups.map((group) => group.date)).toEqual(['2026-06-17'])
+  })
+
   it('lists non-backlog tasks in an inclusive history range', async () => {
     await storage.taskQueries.add('Out of range', '2026-06-14')
     await storage.taskQueries.add('Start', '2026-06-15')

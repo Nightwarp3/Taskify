@@ -60,11 +60,11 @@
     },
     "win": {
       "target": "nsis",
-      "icon": "resources/flat/Square44x44Logo.targetsize-256.png"
+      "icon": "resources/logo-check/SplashScreen.scale-400.png"
     },
     "mac": {
       "target": "dmg",
-      "icon": "resources/flat/Square44x44Logo.targetsize-256.png"
+      "icon": "resources/logo-check/SplashScreen.scale-400.png"
     },
     "nsis": {
       "oneClick": false,

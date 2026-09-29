@@ -29,7 +29,8 @@ export default function TodayView({ onNavigateToTemplate }: Props) {
     groups: historyGroups,
     updateTask: updateHistory,
     deleteTask: deleteHistory,
-    pullToToday
+    pullToToday,
+    pullAllToToday
   } = useWeekHistoryTasks(today)
   const [activeFilter, setActiveFilter] = useState<string | null>(null)
   const [showModal, setShowModal] = useState(false)
@@ -164,6 +165,7 @@ export default function TodayView({ onNavigateToTemplate }: Props) {
                   onUpdate={handleHistoryUpdate}
                   onDelete={deleteHistory}
                   onPullToToday={handlePullToToday}
+                  onPullAllToToday={pullAllToToday}
                 />
               </div>
             )}

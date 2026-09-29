@@ -172,6 +172,20 @@ export const taskQueries = {
     return this.listHistoryRange(start, offsetDate(today, -1))
   },
 
+  async listHistoricalIncomplete(today: string): Promise<TaskDateGroup[]> {
+    const start = weekStart(today)
+    const groups: TaskDateGroup[] = []
+    for (const [date, ids] of Object.entries(cache.tasksByDate)) {
+      if (date >= start) continue
+      const incomplete = (ids as number[])
+        .map((id) => cache.tasks[id])
+        .filter((t) => t && !t.completed && !t.backlog)
+        .map(toTask)
+      if (incomplete.length > 0) groups.push({ date, tasks: incomplete })
+    }
+    return groups.sort((a, b) => b.date.localeCompare(a.date))
+  },
+
   async listHistoryRange(startDate: string, endDate: string): Promise<TaskDateGroup[]> {
     const groups: TaskDateGroup[] = []
     for (const [date, ids] of Object.entries(cache.tasksByDate)) {
@@ -275,6 +289,15 @@ export const taskQueries = {
     cache.tasks[id] = updated
     await flush('tasks', 'tasksByDate')
     return toTask(updated)
+  },
+
+  async pullToTodayMany(ids: number[], today: string): Promise<Task[]> {
+    const moved: Task[] = []
+    for (const id of new Set(ids)) {
+      const task = await this.pullToToday(id, today)
+      if (task) moved.push(task)
+    }
+    return moved
   },
 
   async getById(id: number): Promise<Task | null> {
